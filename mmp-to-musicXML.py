@@ -18,7 +18,7 @@
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('xmltest.mmp') #'xmltest.mmp' #'funbgmXMLTESTsmall.mmp'
+tree = ET.parse('testfiles/xmltest.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 root = tree.getroot()
 
 LMMS_MEASURE_LENGTH = 192
