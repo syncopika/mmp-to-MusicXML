@@ -14,18 +14,18 @@
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
 # before attempting to convert parts will have to be separated (but doing so in LMMS is not too bad - just a bit of copying, pasting and scrubbing)
-
+from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('testfiles/xmltest.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
+tree = ET.parse('testfiles/funbgmXMLTESTsmall.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 root = tree.getroot()
 
 LMMS_MEASURE_LENGTH = 192
 INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass"}
 NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
 SIXTEENTH = "16th"
-NOTE_TYPE = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd"} # this is too restrictive. 168 should really be a double dotted half note and 144 a dotted half??
+NOTE_TYPE = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"} # this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
 
 ### helpful functions ###
 def getInstruments():
@@ -87,7 +87,8 @@ def addNote(parentNode, note, isChord=False, lengthTable=None):
 	
 	return newNote
 	
-# add a new rest of a specific type 
+# add a new rest of a specific type
+# see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
 def addRest(parentNode, type):
 	# you will need to figure out the duration given the type! i.e. 16th = duration of 2 if divisions is 8 
 	# right now we're assuming 16th rests only!!!
@@ -98,6 +99,46 @@ def addRest(parentNode, type):
 	newType = ET.SubElement(newNote, "type")
 	newType.text = type
 	return newNote 
+
+	
+# figure out types and number of rests needed given a length from one note to another 
+def getRests(initialDistance):
+
+	restsToAdd = OrderedDict()
+	
+	# how many whole rests? 
+	numWholeRests = int(initialDistance/192)
+	remSize = initialDistance - numWholeRests*192 
+	
+	# how many quarter rests? 
+	numQuarterRests = int(remSize/48)
+	remSize = remSize - numQuarterRests*48 
+	
+	# how many eighth rests?
+	numEighthRests = int(remSize/24)
+	remSize = remSize - numEighthRests*24 
+	
+	# how many 16th rests?
+	num16thRests = int(remSize/12)
+	remSize = remSize - num16thRests*12 
+	
+	# how many 32nd rests?
+	num32ndRests = int(remSize/6)
+	remSize = remSize - num32ndRests*6 
+	
+	# how many 64th rests? only go up to 64 for now?
+	num64thRests = int(remSize/3)
+	remSize = remSize - num64thRests*3 
+	
+	restsToAdd['whole'] = numWholeRests
+	restsToAdd['quarter'] = numQuarterRests
+	restsToAdd['eighth'] = numEighthRests
+	restsToAdd['16th'] = num16thRests
+	restsToAdd['32nd'] = num32ndRests
+	restsToAdd['64th'] = num64thRests
+	
+	return restsToAdd 
+
 
 # create a measure node 
 def createMeasure(parentNode, measureCounter):
@@ -146,7 +187,7 @@ def createFirstMeasure(parentNode, measureCounter, isRest=False):
 		newRest = ET.SubElement(newNote, "rest")
 		newRest.set("measure", "yes")
 		newDuration = ET.SubElement(newNote, "duration")
-		newDuration.text= "32"
+		newDuration.text = "32"
 		
 	return firstMeasure 
 	
@@ -161,7 +202,7 @@ def addRestMeasure(parentNode, measureCounter):
 	newRest = ET.SubElement(newNote, "rest")
 	newRest.set("measure", "yes")
 	newDuration = ET.SubElement(newNote, "duration")
-	newDuration.text= "32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
+	newDuration.text = "32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
 
 	return newRestMeasure # return a reference to the newly created measure node 
 
@@ -338,9 +379,9 @@ for el in tree.iter(tag = 'track'):
 		# remember that the elements are tuples => (note, the measure note is in)
 		patternNotes = sorted(patternNotes, key=lambda p : int(p[0].attrib["pos"]))
 
-		for p in patternNotes:
-			print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
-		print("---------------")
+		#for p in patternNotes:
+		#	print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
+		#print("---------------")
 			
 		notes = patternNotes 
 		positionsSeen = set()
@@ -360,6 +401,10 @@ for el in tree.iter(tag = 'track'):
 			currMeasure = createFirstMeasure(currentPart, measureCounter, False)
 			measureCounter += 1
 		else:
+		
+			# how many rests to add before first note 
+			print(getRests(firstNotePos))
+		
 			# add full rest measures first if needed 
 			numRestMeasures = int(firstNotePos / LMMS_MEASURE_LENGTH)
 			#print("num rest measures: " + str(numRestMeasures))
