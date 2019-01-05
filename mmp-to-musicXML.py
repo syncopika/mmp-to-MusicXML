@@ -7,9 +7,7 @@
 
 # major bugs: 
 # bass instrument notes should be adjusted/transposed!!!
-
-# can't handle/identify TRIPLETS! :0 or 32nd notes...
-# i.e. if you have a dotted eighth plus a 32nd note, that will throw everything off because the smallest rest type right now is 16th
+# can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
@@ -18,18 +16,26 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('testfiles/funbgmXMLTESTsmall.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
+tree = ET.parse('testfiles/funbgmXMLTEST.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 root = tree.getroot()
 
 LMMS_MEASURE_LENGTH = 192
+NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass"}
 NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
-SIXTEENTH = "16th"
-NOTE_TYPE = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"} # this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
+
+# these are the true lengths of each note type.
+# for example, a 16th note has a length of 12
+# these numbers are based on note lengths in LMMS!
+NOTE_TYPE = {"whole":192 , "half":96, "quarter":48, "eighth":24, "16th":12, "32nd":6, "64th":3}
+
+# these are the note types that should be used when given a certain length 
+# if no length perfectly matches, then the closest match is the one to use
+# these numbers are based on note lengths in LMMS!
+# this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
+NOTE_LENGTHS = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"}
 
 ### helpful functions ###
-def getInstruments():
-	pass
 	
 # for a given length, find the closest note type 
 # this function attemps to find the closest, largest length that's less than or equal to the given length 
@@ -38,12 +44,12 @@ def findClosestNoteType(length):
 	
 	closestLength = None
 	
-	for noteLength in sorted(NOTE_TYPE, reverse=True):
+	for noteLength in sorted(NOTE_LENGTHS, reverse=True):
 		if noteLength <= length:
-			return NOTE_TYPE[noteLength]
+			return NOTE_LENGTHS[noteLength]
 				
 	if closestLength == None:
-		return NOTE_TYPE[6]
+		return NOTE_LENGTHS[6]
 
 # add a new note 
 # can specify if adding a new note to a chord (which appends a chord element)
@@ -91,11 +97,29 @@ def addNote(parentNode, note, isChord=False, lengthTable=None):
 # see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
 def addRest(parentNode, type):
 	# you will need to figure out the duration given the type! i.e. 16th = duration of 2 if divisions is 8 
-	# right now we're assuming 16th rests only!!!
+	# so if divisions = 8, then the smallest unit is 32nd notes, since 8 32nd notes go into 1 quarter note 
 	newNote = ET.SubElement(parentNode, "note")
 	newRest = ET.SubElement(newNote, "rest")
 	newDuration = ET.SubElement(newNote, "duration")
-	newDuration.text = "2" # 2 32nd notes = 1 16th note 
+	
+	# calculate the correct duration text depending on type 
+	# note that this also depends on divisions!
+	# assuming division = 8 here!
+	# since a duration of 1 = 1 32nd note, we can use 
+	dur = ""
+	if type == "32nd":
+		dur = "1"
+	elif type == "16th":
+		dur = "2" # 2 32nd notes = 1 16th note 
+	elif type == "eighth":
+		dur = "4"
+	elif type == "quarter":
+		dur = "8"
+	elif type == "half":
+		dur = "16"
+		
+	newDuration.text = dur
+	
 	newType = ET.SubElement(newNote, "type")
 	newType.text = type
 	return newNote 
@@ -163,7 +187,7 @@ def createFirstMeasure(parentNode, measureCounter, isRest=False):
 	# how to know this programatically though? iterate through all notes just to 
 	# see first??? just go with 8 for now (so 32nd notes are the smallest unit)
 	divisions = ET.SubElement(newMeasureAttributes, "divisions")
-	divisions.text = "8"
+	divisions.text = NUM_DIVISIONS
 	
 	key = ET.SubElement(newMeasureAttributes, "key")
 	fifths = ET.SubElement(key, "fifths")
@@ -228,9 +252,6 @@ def createLengthTable(notes):
 	# the 2nd-to-last note's length should be truncated to 12, the smallest length at that position
 	# that does not carry over to the next measure.
 	#
-	#  <note pan="0" key="53" vol="36" pos="336" len="24"/>
-	#  <note pan="0" key="60" vol="36" pos="372" len="12"/>
-	#  <note pan="0" key="50" vol="36" pos="372" len="12"/>
 	#  <note pan="0" key="79" vol="48" pos="372" len="48"/>
 	#  <note pan="0" key="67" vol="48" pos="372" len="48"/> <=
 	#  <note pan="0" key="77" vol="48" pos="384" len="48"/> <=
@@ -241,8 +262,6 @@ def createLengthTable(notes):
 	#  <note pan="0" key="67" vol="97" pos="192" len="96"/>
     #  <note pan="0" key="60" vol="82" pos="216" len="48"/>
     #  <note pan="0" key="62" vol="87" pos="264" len="96"/>
-    #  <note pan="0" key="59" vol="82" pos="288" len="96"/>
-    #  <note pan="0" key="55" vol="82" pos="288" len="96"/>
 	
 	nextMeasurePos = LMMS_MEASURE_LENGTH
 	for i in range(0, len(notes)):
@@ -267,7 +286,7 @@ def createLengthTable(notes):
 				if currNoteDistance > nextMeasurePos:
 					# truncate the note 
 					l = nextMeasurePos - p  
-					print("truncated note that went over to next measure " + str(notes[i][1]+1) + ". new length: " + str(l))
+					#print("truncated note that went over to next measure " + str(notes[i][1]+1) + ". new length: " + str(l))
 					
 				elif ((l + p) > int(notes[i+1][0].attrib["pos"])):
 					# similar to above, but checking if current note's length overlaps with the next note's position. 
@@ -403,37 +422,35 @@ for el in tree.iter(tag = 'track'):
 		else:
 		
 			# how many rests to add before first note 
-			print(getRests(firstNotePos))
-		
-			# add full rest measures first if needed 
-			numRestMeasures = int(firstNotePos / LMMS_MEASURE_LENGTH)
-			#print("num rest measures: " + str(numRestMeasures))
-			for m in range(0, numRestMeasures):
-				if m == 0:
-					createFirstMeasure(currentPart, measureCounter, True)
-					measureCounter += 1
-				else:
-					addRestMeasure(currentPart, measureCounter)
-					measureCounter += 1
+			restsToAdd = getRests(firstNotePos)
 			
-			numRestsToAdd = int((firstNotePos%LMMS_MEASURE_LENGTH)/12)#int(end / 12) # divide by 12 = number of 16th rests to add. THIS IS PROBABLY A BAD IDEAAAAA
-			#print("num rests to add: " + str(numRestsToAdd))
-			
-			# then add individual rests as needed 
-			for l in range(0, numRestsToAdd):
-				if newMeasureCheck(currLength):
-					currMeasure = addNewMeasure(currentPart, measureCounter)
-					measureCounter += 1 
-					currLength = 0		
-				addRest(currMeasure, SIXTEENTH)
-				currLength += 12 
-			
+			for rest in restsToAdd:
+				if restsToAdd[rest] > 0:
+					if rest == "whole":
+						# if there are whole rests to add 
+						for m in range(0, restsToAdd[rest]):
+							if m == 0:
+								createFirstMeasure(currentPart, measureCounter, True)
+								measureCounter += 1
+							else:
+								addRestMeasure(currentPart, measureCounter)
+								measureCounter += 1
+					else:
+						# add rests smaller than whole rests 
+						for l in range(0, restsToAdd[rest]):
+							# add a new measure if needed first
+							if newMeasureCheck(currLength):
+								currMeasure = addNewMeasure(currentPart, measureCounter)
+								measureCounter += 1 
+								currLength = 0 
+							addRest(currMeasure, rest)
+							currLength += NOTE_TYPE[rest]
+							
 			if newMeasureCheck(currLength):
 				currMeasure = addNewMeasure(currentPart, measureCounter)
 				measureCounter += 1 
-				currLength = 0
-				
-	
+				currLength = 0 
+
 		# then go through the notes
 		for k in range(0, len(notes)):
 		
@@ -452,7 +469,7 @@ for el in tree.iter(tag = 'track'):
 				addNote(currMeasure, note, True, positionLengths)
 				
 				# for this, don't increment currLength!!
-				continue		
+				continue
 			else:
 				positionsSeen.add(position)
 		
@@ -468,25 +485,27 @@ for el in tree.iter(tag = 'track'):
 				prevNoteLen = positionLengths[prevNotePos] # use the length as given in positionLengths for the previous position!
 				
 				if int(note.attrib["pos"]) != (prevNotePos + prevNoteLen):
-				
-					# we have a gap - need to add in some rests 
-					# add full rest measures if needed, then calculate individual rests 
-					numRestMeasures = int((position - (prevNotePos + prevNoteLen)) / 192) #int(firstNotePos / LMMS_MEASURE_LENGTH)
-					for m in range(0, numRestMeasures):
-							addRestMeasure(currentPart, measureCounter)
-							measureCounter += 1
 					
-					numRestsToAdd = int(((position - (prevNotePos + prevNoteLen))%192)/12) #int((firstNotePos%LMMS_MEASURE_LENGTH)/12)
+					restsToAdd = getRests(position - (prevNotePos + prevNoteLen))
+			
+					for rest in restsToAdd:
+						if restsToAdd[rest] > 0:
+							if rest == "whole":
+								# if there are whole rests to add 
+								for m in range(0, restsToAdd[rest]):
+									addRestMeasure(currentPart, measureCounter)
+									measureCounter += 1
+							else:
+								# add rests smaller than whole rests 
+								for l in range(0, restsToAdd[rest]):
+									# add a new measure if needed first
+									if newMeasureCheck(currLength):
+										currMeasure = addNewMeasure(currentPart, measureCounter)
+										measureCounter += 1 
+										currLength = 0 
+									addRest(currMeasure, rest)
+									currLength += NOTE_TYPE[rest]
 					
-					# then add individual rests as needed 
-					for l in range(0, numRestsToAdd):
-						if newMeasureCheck(currLength):
-							currMeasure = addNewMeasure(currentPart, measureCounter)
-							measureCounter += 1 
-							currLength = 0		
-						addRest(currMeasure, SIXTEENTH)
-						currLength += 12 
-
 					# then add the note 
 					if newMeasureCheck(currLength):
 						currMeasure = addNewMeasure(currentPart, measureCounter)
