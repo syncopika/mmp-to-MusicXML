@@ -6,8 +6,12 @@
 # future goals: somehow read in a single piano track and be able to figure out which notes should go on the bass staff lol.
 
 # major bugs: 
-# bass instrument notes should be adjusted/transposed!!!
 # can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
+# gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
+# what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
+
+# other todo:
+# bass instrument notes should be adjusted/transposed!!!
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
@@ -16,9 +20,10 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('testfiles/funbgmXMLTEST.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
+tree = ET.parse('testfiles/pianoTest.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 root = tree.getroot()
 
+### important constants! ###
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass"}
@@ -49,7 +54,7 @@ def findClosestNoteType(length):
 			return NOTE_LENGTHS[noteLength]
 				
 	if closestLength == None:
-		return NOTE_LENGTHS[6]
+		return NOTE_LENGTHS[3]
 
 # add a new note 
 # can specify if adding a new note to a chord (which appends a chord element)
@@ -82,7 +87,11 @@ def addNote(parentNode, note, isChord=False, lengthTable=None):
 
 	if lengthTable != None:
 		# when would it be None?
-		noteLength = lengthTable[position]
+		# note that the note length is actually the corrected length
+		# this is because I'm not handling dotted notes right now so that if you use the actual length given by LMMS,
+		# you're going to skip out on some rests and throw everything off 
+		# instead take the note's original length but use NOTE_LENGTHS and NOTE_TYPE to get the corrected length
+		noteLength = NOTE_TYPE[findClosestNoteType(lengthTable[position])] #lengthTable[position]
 	
 	newDuration = ET.SubElement(newNote, "duration")
 	newDuration.text = str(int(noteLength/6))
@@ -180,7 +189,6 @@ def createFirstMeasure(parentNode, measureCounter, isRest=False):
 	newMeasureAttributes = ET.SubElement(firstMeasure, "attributes")
 	
 	# for the first measure, we need to indicate divisions, clef, key
-	
 	# for divisions, this is how much a quarter note will be subdivided
 	# so if you have only eighth notes as the smallest unit in your piece, 
 	# use 2 if 16th is the smallest, use 4, etc. 
@@ -273,36 +281,35 @@ def createLengthTable(notes):
 				lengthTable[p] = l 
 		else:
 			# if we have a note that carries over to the next measure, we need to truncate it
-			if i < len(notes)-1 and p != int(notes[i+1][0].attrib["pos"]):
-				
-				currMeasurePos = (notes[i][1]-1)*LMMS_MEASURE_LENGTH
-				nextMeasurePos = currMeasurePos + LMMS_MEASURE_LENGTH
-				
-				# we want to know if this current note carries over into the next measure 
-				# to find out we can see if the current note's position plus its length is greater than the next measure's position 
-				currNoteDistance = p + l 
+			currMeasurePos = (notes[i][1]-1)*LMMS_MEASURE_LENGTH
+			nextMeasurePos = currMeasurePos + LMMS_MEASURE_LENGTH
+			
+			# we want to know if this current note carries over into the next measure 
+			# to find out we can see if the current note's position plus its length is greater than the next measure's position 
+			currNoteDistance = p + l 
 
-				#print("currNoteDistance: " + str(currNoteDistance) + " nextMeasurePos: " + str(nextMeasurePos))
-				if currNoteDistance > nextMeasurePos:
-					# truncate the note 
-					l = nextMeasurePos - p  
-					#print("truncated note that went over to next measure " + str(notes[i][1]+1) + ". new length: " + str(l))
-					
-				elif ((l + p) > int(notes[i+1][0].attrib["pos"])):
-					# similar to above, but checking if current note's length overlaps with the next note's position. 
-					# if the current note ends after the next note starts, truncate the current note's length
-					# the new length will be the difference between the next note's position and the current note's position
-					nextNotePos = int(notes[i+1][0].attrib["pos"])
-					l = nextNotePos - p 
-					#print(str(l) + ", l+p: " + str(l+p) )
+			#print("currNoteDistance: " + str(currNoteDistance) + " nextMeasurePos: " + str(nextMeasurePos))
+			if currNoteDistance > nextMeasurePos:
+				# truncate the note 
+				l = nextMeasurePos - p  
+				#print("truncated note that went over to next measure " + str(notes[i][1]+1) + ". new length: " + str(l))
+			
+			if i < len(notes)-1 and ((l + p) > int(notes[i+1][0].attrib["pos"])) and p != int(notes[i+1][0].attrib["pos"]):
+				# similar to above, but checking if current note's length overlaps with the next note's position. 
+				# if the current note ends after the next note starts, truncate the current note's length
+				# the new length will be the difference between the next note's position and the current note's position
+				# it's also important to check that this current note is not in the same position as the next note (which forms a chord)
+				# we need this check because otherwise we might get a 0 for l's value 
+				nextNotePos = int(notes[i+1][0].attrib["pos"])
+				l = nextNotePos - p 
+				#print(str(l) + ", l+p: " + str(l+p) )
 			
 			lengthTable[p] = l
-		
+
 	return lengthTable 
 
-	
-#print(root.attrib)
 
+### START PROGRAM ###
 # write a new xml file 
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
@@ -416,7 +423,7 @@ for el in tree.iter(tag = 'track'):
 		# make sure currMeasure variable is set to the first measure that has a note!
 		firstNotePos = int(notes[0][0].attrib["pos"])
 		if firstNotePos == 0:
-			# if first note starts from the very beginning
+			# if first note starts from the very beginning, create initial measure without any rests padding
 			currMeasure = createFirstMeasure(currentPart, measureCounter, False)
 			measureCounter += 1
 		else:
@@ -455,11 +462,6 @@ for el in tree.iter(tag = 'track'):
 		for k in range(0, len(notes)):
 		
 			note = notes[k][0]
-			
-			# even within a pattern you could have the first note start at a position that's not 0. 
-			# so we need to account for that too 
-			# remember that position here is relative to the pattern. so if the first note in a pattern 
-			# starts at the beginning of the pattern, its position is 0.
 			position = int(note.attrib["pos"])
 			pitch = NOTES[int(note.attrib["key"]) % 12]
 			
@@ -474,20 +476,22 @@ for el in tree.iter(tag = 'track'):
 				positionsSeen.add(position)
 		
 			if k == 0:
-				# the first note of the measure 
+				# the first note for this instrument 
 				addNote(currMeasure, note, False, positionLengths)
 				
 				# increment length 
-				currLength += positionLengths[position] 			
+				currLength += NOTE_TYPE[findClosestNoteType(positionLengths[position])]			
 			else:
-				# check for gaps, add rests if needed. don't forget to increment length accordingly!
+				# check for gaps between previous and current note, add rests if needed. don't forget to increment length accordingly!
 				prevNotePos = int(notes[k-1][0].attrib["pos"])
-				prevNoteLen = positionLengths[prevNotePos] # use the length as given in positionLengths for the previous position!
+				
+				# don't use the length as given in positionLengths for the previous position!
+				prevNoteLen = NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]
 				
 				if int(note.attrib["pos"]) != (prevNotePos + prevNoteLen):
 					
 					restsToAdd = getRests(position - (prevNotePos + prevNoteLen))
-			
+				
 					for rest in restsToAdd:
 						if restsToAdd[rest] > 0:
 							if rest == "whole":
@@ -505,27 +509,18 @@ for el in tree.iter(tag = 'track'):
 										currLength = 0 
 									addRest(currMeasure, rest)
 									currLength += NOTE_TYPE[rest]
-					
-					# then add the note 
-					if newMeasureCheck(currLength):
-						currMeasure = addNewMeasure(currentPart, measureCounter)
-						measureCounter += 1 
-						currLength = 0
-					addNote(currMeasure, note, False, positionLengths)
-					
-					# increment length 
-					currLength += positionLengths[position]
-						
-				else:
-					# just add the note
-					if newMeasureCheck(currLength):
-						currMeasure = addNewMeasure(currentPart, measureCounter)
-						measureCounter += 1 
-						currLength = 0
-					addNote(currMeasure, note, False, positionLengths)
-					
-					# increment length 
-					currLength += positionLengths[position]
+
+				# add the note
+				if newMeasureCheck(currLength):
+					currMeasure = addNewMeasure(currentPart, measureCounter)
+					measureCounter += 1 
+					currLength = 0
+				
+				addNote(currMeasure, note, False, positionLengths)
+				
+				# increment length 
+				currLength += NOTE_TYPE[findClosestNoteType(positionLengths[position])] #positionLengths[position]
+
 				
 		instrumentCounter += 1
 				
