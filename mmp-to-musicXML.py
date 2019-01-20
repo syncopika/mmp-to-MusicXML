@@ -6,9 +6,10 @@
 # future goals: somehow read in a single piano track and be able to figure out which notes should go on the bass staff lol.
 
 # major bugs: 
-# can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
-# gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
+# - can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
+# - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
 # what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
+# - can't do time signatures other than 4/4
 
 # other todo:
 # bass instrument notes should be adjusted/transposed!!!
@@ -21,7 +22,7 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('testfiles/011319bgmidea.mmp') #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+tree = ET.parse('testfiles/080415pianobgm3popver.mmp') #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
 root = tree.getroot()
 
 ### important constants! ###
