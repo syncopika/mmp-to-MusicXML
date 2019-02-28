@@ -22,13 +22,10 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 
-tree = ET.parse('testfiles/080415pianobgm3popver.mmp') #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
-root = tree.getroot()
-
 ### important constants! ###
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
-INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass"}
+INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar"}
 NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
 
 # these are the true lengths of each note type.
@@ -142,8 +139,8 @@ def getRests(initialDistance):
 	restsToAdd = OrderedDict()
 	
 	# how many whole rests? 
-	numWholeRests = int(initialDistance/192)
-	remSize = initialDistance - numWholeRests*192 
+	numWholeRests = int(initialDistance/LMMS_MEASURE_LENGTH)
+	remSize = initialDistance - numWholeRests*LMMS_MEASURE_LENGTH
 	
 	# how many quarter rests? 
 	numQuarterRests = int(remSize/48)
@@ -165,13 +162,13 @@ def getRests(initialDistance):
 	num64thRests = int(remSize/3)
 	remSize = remSize - num64thRests*3 
 	
-	restsToAdd['whole'] = numWholeRests
-	restsToAdd['quarter'] = numQuarterRests
-	restsToAdd['eighth'] = numEighthRests
-	restsToAdd['16th'] = num16thRests
-	restsToAdd['32nd'] = num32ndRests
 	restsToAdd['64th'] = num64thRests
-	
+	restsToAdd['32nd'] = num32ndRests
+	restsToAdd['16th'] = num16thRests
+	restsToAdd['eighth'] = numEighthRests
+	restsToAdd['quarter'] = numQuarterRests
+	restsToAdd['whole'] = numWholeRests
+
 	return restsToAdd 
 
 
@@ -285,7 +282,7 @@ def createLengthTable(notes):
 				lengthTable[p] = l 
 			
 			# there might be an instance where we have at least 2 notes in the same position,
-			# but they're the same length AND they should actually be truncated because they might 
+			# but they're the same length AND they should actually be truncated because they
 			# spill over into another note like in the second if statement below (in the else block) 
 			# so we need to check that here 
 			if i < len(notes)-1 and ((l + p) > int(notes[i+1][0].attrib["pos"])) and p != int(notes[i+1][0].attrib["pos"]):
@@ -323,9 +320,23 @@ def createLengthTable(notes):
 
 
 ### START PROGRAM ###
-# write a new xml file 
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
+tree = ET.parse('testfiles/112416melancholypianobgm.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+root = tree.getroot()
+
+# get the time signature of the piece 
+timeSignatureNumerator = root.find('head').attrib['timesig_numerator']
+timeSignatureDenominator = root.find('head').attrib['timesig_denominator']
+#print('the time signature is: ' + str(timeSignatureNumerator) + "/" + str(timeSignatureDenominator))
+
+if timeSignatureNumerator != '4' or timeSignatureDenominator != '4':
+	print('time signature is not 4/4. your file might not come out too well :( sorry!')
+	
+# if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. then at the end we look for nodes containing these names and delete them.
+emptyInstruments = []
+
+# write a new xml file 
 newFile = open("newxmltest.xml", "w")
 
 # add the appropriate headers first 
@@ -352,7 +363,7 @@ for el in tree.iter(tag = 'track'):
 		instrumentCounter += 1
 		
 		newPartName = ET.SubElement(newPart, "part-name")
-		newPartName.text = name;
+		newPartName.text = name
 
 
 # now that the instruments have been declared, time to write out the notes for each instrument 
@@ -394,7 +405,7 @@ for el in tree.iter(tag = 'track'):
 			# is a multiple of 192 
 			chunk = patternChunks[i].iter(tag = 'note')
 			chunkPos = int(patternChunks[i].attrib["pos"])
-			measureNum = int(chunkPos / 192) + 1 # patterns always start on a multiple of 192 
+			measureNum = int(chunkPos / LMMS_MEASURE_LENGTH) + 1 # patterns always start on a multiple of 192 
 			
 			for n in chunk:
 				# because each note's position is relative to their pattern, each note's position should be their pattern pos + note pos 
@@ -423,7 +434,12 @@ for el in tree.iter(tag = 'track'):
 		#print("---------------")
 			
 		notes = patternNotes 
-		positionsSeen = set()
+		
+		# this instrument might not have any notes! (empty track)
+		# if so, need to remove this subelement node otherwise MuseScore will complain... (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
+		if len(notes) == 0:
+			emptyInstruments.append("P" + str(instrumentCounter))
+			continue
 			
 		# find out what the smallest note length should be for stacked notes in a chord
 		# this unfortunately means tied notes will be broken
@@ -471,6 +487,7 @@ for el in tree.iter(tag = 'track'):
 				currLength = 0 
 
 		# then go through the notes
+		positionsSeen = set()
 		for k in range(0, len(notes)):
 		
 			note = notes[k][0]
@@ -501,9 +518,11 @@ for el in tree.iter(tag = 'track'):
 				prevNoteLen = NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]
 				
 				if int(note.attrib["pos"]) != (prevNotePos + prevNoteLen):
-					
+					#print("instrument: " + name + ", prev note pos: " + str(prevNotePos) + ", prev note len: " + str(prevNoteLen) + ", current note pos: " + str(position))
 					restsToAdd = getRests(position - (prevNotePos + prevNoteLen))
+					#print(restsToAdd)
 				
+					# this is kinda tricky. we need to know the right order to add the rests, otherwise we might exceed 192 for currLength and never increment currMeasure appropriately 
 					for rest in restsToAdd:
 						if restsToAdd[rest] > 0:
 							if rest == "whole":
@@ -513,6 +532,7 @@ for el in tree.iter(tag = 'track'):
 									measureCounter += 1
 							else:
 								# add rests smaller than whole rests 
+								# it is probably safer to add the smaller rests first!
 								for l in range(0, restsToAdd[rest]):
 									# add a new measure if needed first
 									if newMeasureCheck(currLength):
@@ -532,10 +552,22 @@ for el in tree.iter(tag = 'track'):
 				
 				# increment length 
 				currLength += NOTE_TYPE[findClosestNoteType(positionLengths[position])]
-
-				
+		
+		# move to next instrument
 		instrumentCounter += 1
-				
+		
+# check if we need to remove any nodes for empty instruments 
+for partID in emptyInstruments:
+	for part in scorePartwise.findall("part"):
+		if part.attrib['id'] == partID:
+			scorePartwise.remove(part)
+			
+	# remove from part list 
+	for part in partList.findall('score-part'):
+		if part.attrib['id'] == partID:
+			partList.remove(part)
+			
+
 # write tree to file 
 # make sure to pretty-print because otherwise everything will be on one line
 data = minidom.parseString(ET.tostring(scorePartwise, encoding="unicode")).toprettyxml(indent="    ")
