@@ -25,7 +25,7 @@ from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-
 ### important constants! ###
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
-INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar"}
+INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar","str", "marc str","pizz","harp","piccolo"}
 NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
 
 # these are the true lengths of each note type.
@@ -315,14 +315,13 @@ def createLengthTable(notes):
 			
 			lengthTable[p] = l
 			
-
 	return lengthTable 
 
 
 ### START PROGRAM ###
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
-tree = ET.parse('testfiles/112416melancholypianobgm.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+tree = ET.parse('testfiles/hatarakusaibouED-arr.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
 root = tree.getroot()
 
 # get the time signature of the piece 
@@ -369,11 +368,16 @@ for el in tree.iter(tag = 'track'):
 # now that the instruments have been declared, time to write out the notes for each instrument 
 # for each instrument, we need to write out each measure by noting the properties of each measure
 # then we write out each note in each measure 
+
 # potential problems:
 # the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
 # notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
 # a position, so use that to sort the patterns in order. then write out the notes 
-instrumentCounter = 1
+instrumentCounter = 1 	# reset instrumentCounter 
+
+# we need to keep track of each part - ther part id node and the last measure num they had notes for. 
+# at the very end we need to make sure every part has the same number of measures 
+partMeasures = {}
 
 # for each track element
 for el in tree.iter(tag = 'track'):
@@ -391,8 +395,6 @@ for el in tree.iter(tag = 'track'):
 		for el2 in el.iter(tag = 'pattern'):
 			patternChunks.append(el2)
 		
-		measureCounter = 1
-		currLength = 0
 		currMeasure = None
 		patternNotes = []
 		
@@ -429,14 +431,16 @@ for el in tree.iter(tag = 'track'):
 		# remember that the elements are tuples => (note, the measure note is in)
 		patternNotes = sorted(patternNotes, key=lambda p : int(p[0].attrib["pos"]))
 
+		# this is very helpful for checking notes 
+		#print("----- " + str(name) + " ------------------")
 		#for p in patternNotes:
 		#	print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
-		#print("---------------")
+		#print("-----------------------")
 			
 		notes = patternNotes 
 		
 		# this instrument might not have any notes! (empty track)
-		# if so, need to remove this subelement node otherwise MuseScore will complain... (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
+		# if so, need to remove this subelement node at the very  end otherwise MuseScore will complain... (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
 		if len(notes) == 0:
 			emptyInstruments.append("P" + str(instrumentCounter))
 			continue
@@ -448,113 +452,119 @@ for el in tree.iter(tag = 'track'):
 		
 		# first create the first measure for this intrument. it might be a rest measure, 
 		# or rest measures might need to be added first!
-		# look at the first note to know what to do
-		# make sure currMeasure variable is set to the first measure that has a note!
 		firstNotePos = int(notes[0][0].attrib["pos"])
-		if firstNotePos == 0:
-			# if first note starts from the very beginning, create initial measure without any rests padding
-			currMeasure = createFirstMeasure(currentPart, measureCounter, False)
-			measureCounter += 1
-		else:
-		
-			# how many rests to add before first note 
-			restsToAdd = getRests(firstNotePos)
-			
-			for rest in restsToAdd:
-				if restsToAdd[rest] > 0:
-					if rest == "whole":
-						# if there are whole rests to add 
-						for m in range(0, restsToAdd[rest]):
-							if m == 0:
-								createFirstMeasure(currentPart, measureCounter, True)
-							else:
-								addRestMeasure(currentPart, measureCounter)
-							measureCounter += 1
-					else:
-						# add rests smaller than whole rests 
-						for l in range(0, restsToAdd[rest]):
-							# add a new measure if needed first
-							if newMeasureCheck(currLength):
-								currMeasure = addNewMeasure(currentPart, measureCounter)
-								measureCounter += 1 
-								currLength = 0 
-							addRest(currMeasure, rest)
-							currLength += NOTE_TYPE[rest]
-							
-			if newMeasureCheck(currLength):
-				currMeasure = addNewMeasure(currentPart, measureCounter)
-				measureCounter += 1 
-				currLength = 0 
+		firstNoteMeasureNum = notes[0][1]
 
+		if firstNoteMeasureNum == 1:
+			# if first note starts from the very beginning, create initial measure without any rests padding
+			currMeasure = createFirstMeasure(currentPart, firstNoteMeasureNum, False)
+		else:			
+			# add whole rests first 
+			numWholeRests = firstNoteMeasureNum -1
+			
+			for i in range(0, numWholeRests):
+				if i == 0:
+					createFirstMeasure(currentPart, i + 1, True)
+				else:
+					addRestMeasure(currentPart, i + 1)
+			
+			currMeasure = addNewMeasure(currentPart, firstNoteMeasureNum)
+			
+		lastMeasureNum = firstNoteMeasureNum 
+		
 		# then go through the notes
+		partMeasures[currentPart] = 0 	# keep track of how many measures this instrument has 
 		positionsSeen = set()
 		for k in range(0, len(notes)):
 		
 			note = notes[k][0]
+			noteLen = int(notes[k][0].attrib["len"])
+			measureNum = notes[k][1]
+			
 			position = int(note.attrib["pos"])
 			pitch = NOTES[int(note.attrib["key"]) % 12]
 			
-			if position in positionsSeen:	
-				# make new note but add to a chord
-				# no need to check if need to make a new measure because these notes are in a chord 
-				addNote(currMeasure, note, True, positionLengths)
+			# since the notes list contains tuples where tuple[0] is the note object, and tuple[1] is the measure the note should go in, we can use this info 
+			if lastMeasureNum == measureNum:
 				
-				# for this, don't increment currLength!!
-				continue
-			else:
-				positionsSeen.add(position)
-		
-			if k == 0:
-				# the first note for this instrument 
-				addNote(currMeasure, note, False, positionLengths)
+				# add the note (but check to see if it belongs to a chord!)
+				if position in positionsSeen:	
+					# make new note but add to a chord
+					# no need to check if need to make a new measure because these notes are in a chord 
+					addNote(currMeasure, note, True, positionLengths)
+				else:
+					# add rests if needed based on previous note's position, then add the note 
+					if k > 0:
+						prevNotePos = int(notes[k-1][0].attrib["pos"])
+						restsToAdd = getRests(position -  (prevNotePos  +NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]))
+					else:
+						restsToAdd = getRests(position - ((measureNum-1)*LMMS_MEASURE_LENGTH))
 				
-				# increment length 
-				currLength += NOTE_TYPE[findClosestNoteType(positionLengths[position])]			
-			else:
-				# check for gaps between previous and current note, add rests if needed. don't forget to increment length accordingly!
-				prevNotePos = int(notes[k-1][0].attrib["pos"])
-				
-				# don't use the length as given in positionLengths for the previous position!
-				prevNoteLen = NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]
-				
-				if int(note.attrib["pos"]) != (prevNotePos + prevNoteLen):
-					#print("instrument: " + name + ", prev note pos: " + str(prevNotePos) + ", prev note len: " + str(prevNoteLen) + ", current note pos: " + str(position))
-					restsToAdd = getRests(position - (prevNotePos + prevNoteLen))
-					#print(restsToAdd)
-				
-					# this is kinda tricky. we need to know the right order to add the rests, otherwise we might exceed 192 for currLength and never increment currMeasure appropriately 
 					for rest in restsToAdd:
-						if restsToAdd[rest] > 0:
-							if rest == "whole":
-								# if there are whole rests to add 
-								for m in range(0, restsToAdd[rest]):
-									addRestMeasure(currentPart, measureCounter)
-									measureCounter += 1
-							else:
-								# add rests smaller than whole rests 
-								# it is probably safer to add the smaller rests first!
-								for l in range(0, restsToAdd[rest]):
-									# add a new measure if needed first
-									if newMeasureCheck(currLength):
-										currMeasure = addNewMeasure(currentPart, measureCounter)
-										measureCounter += 1 
-										currLength = 0 
-									addRest(currMeasure, rest)
-									currLength += NOTE_TYPE[rest]
-
-				# add the note
-				if newMeasureCheck(currLength):
-					currMeasure = addNewMeasure(currentPart, measureCounter)
-					measureCounter += 1 
-					currLength = 0
+						for l in range(0, restsToAdd[rest]):
+							addRest(currMeasure, rest)
+						
+					positionsSeen.add(position)
+					addNote(currMeasure, note, False, positionLengths)
 				
-				addNote(currMeasure, note, False, positionLengths)
-				
-				# increment length 
-				currLength += NOTE_TYPE[findClosestNoteType(positionLengths[position])]
+				# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
+				if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == len(notes) - 1):
+					padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+noteLen ))
+					for rest in padRestsToAdd:
+						for l in range(0, padRestsToAdd[rest]):
+							addRest(currMeasure, rest)
+			else:
+				# need to create new measure(s), then add the note
+				if k > 0:
+					numWholeRests = measureNum - lastMeasureNum - 1
+					for i in range(0, numWholeRests):
+						addRestMeasure(currentPart, notes[k-1][1] + i + 1)
+						
+					# create the new measure to place the note 
+					currMeasure = addNewMeasure(currentPart, measureNum)
+					
+					# add the note (but check to see if it belongs to a chord!)
+					if position in positionsSeen:	
+						# make new note but add to a chord
+						# no need to check if need to make a new measure because these notes are in a chord 
+						addNote(currMeasure, note, True, positionLengths)
+					else:
+						# this might be reached when adding the first note of a new measure 
+						restsToAdd = getRests(position - ((measureNum-1)*LMMS_MEASURE_LENGTH))
+					
+						for rest in restsToAdd:
+							# add rests smaller than whole rests 
+							for l in range(0, restsToAdd[rest]):
+								addRest(currMeasure, rest)
+								
+						# then add the note 
+						positionsSeen.add(position)
+						addNote(currMeasure, note, False, positionLengths)
+					
+					# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
+					# scenarios that could trigger this condition: 1 measure with a single note 
+					if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == len(notes) - 1):
+						padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+noteLen ))
+						for rest in padRestsToAdd:
+							for l in range(0, padRestsToAdd[rest]):
+								addRest(currMeasure, rest)
+			
+			partMeasures[currentPart] = measureNum
+			lastMeasureNum = measureNum
 		
 		# move to next instrument
 		instrumentCounter += 1
+		
+# still need to add whole rests to the end of each instrument so they all have the same number of measures total, otherwise a corrupt file will be reported (but it will still work, at least in MuseScore)!
+highestNumMeasures  = 0
+for part in partMeasures:
+	if partMeasures[part] > highestNumMeasures:
+		highestNumMeasures = partMeasures[part]
+		
+for part in partMeasures:
+	if partMeasures[part] < highestNumMeasures:
+		for i in range(partMeasures[part]+1, highestNumMeasures+1):
+			addRestMeasure(part, i)
 		
 # check if we need to remove any nodes for empty instruments 
 for partID in emptyInstruments:
