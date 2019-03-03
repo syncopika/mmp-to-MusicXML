@@ -1,4 +1,4 @@
-# current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
+# goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
 # this script is meant to be a quick-and-dirty way to get at least a good portion of the music from an LMMS mmp file to music sheets 
 # it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
 # music from LMMS's piano roll to say MuseScore. :) 
@@ -21,6 +21,7 @@
 from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom  # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
+import math
 
 ### important constants! ###
 LMMS_MEASURE_LENGTH = 192
@@ -423,7 +424,13 @@ for el in tree.iter(tag = 'track'):
 				
 				# increment measure num if needed
 				if newPos >= (measureNum*LMMS_MEASURE_LENGTH):
-					measureNum += 1
+					# if note is within the next measure over 
+					if newPos < ((measureNum+1)*LMMS_MEASURE_LENGTH):
+						measureNum += 1
+					else:
+						# the newPos might actually be 2 measures over, not just the next measure! 
+						measureNum = int(math.ceil(newPos / LMMS_MEASURE_LENGTH))
+						
 				
 				patternNotes.append((n, measureNum))
 					
@@ -496,7 +503,7 @@ for el in tree.iter(tag = 'track'):
 					# add rests if needed based on previous note's position, then add the note 
 					if k > 0:
 						prevNotePos = int(notes[k-1][0].attrib["pos"])
-						restsToAdd = getRests(position -  (prevNotePos  +NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]))
+						restsToAdd = getRests(position -  (prevNotePos  + NOTE_TYPE[findClosestNoteType(positionLengths[prevNotePos])]))
 					else:
 						restsToAdd = getRests(position - ((measureNum-1)*LMMS_MEASURE_LENGTH))
 				
@@ -508,8 +515,8 @@ for el in tree.iter(tag = 'track'):
 					addNote(currMeasure, note, False, positionLengths)
 				
 				# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
-				if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == len(notes) - 1):
-					padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+noteLen ))
+				if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == (len(notes) - 1)):
+					padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+NOTE_TYPE[findClosestNoteType(positionLengths[position])]))
 					for rest in padRestsToAdd:
 						for l in range(0, padRestsToAdd[rest]):
 							addRest(currMeasure, rest)
@@ -543,8 +550,8 @@ for el in tree.iter(tag = 'track'):
 					
 					# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 					# scenarios that could trigger this condition: 1 measure with a single note 
-					if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == len(notes) - 1):
-						padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+noteLen ))
+					if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == (len(notes) - 1)):
+						padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+NOTE_TYPE[findClosestNoteType(positionLengths[position])]))
 						for rest in padRestsToAdd:
 							for l in range(0, padRestsToAdd[rest]):
 								addRest(currMeasure, rest)
