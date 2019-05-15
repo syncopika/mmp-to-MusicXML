@@ -1,4 +1,4 @@
-# goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
+# current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
 # this script is meant to be a quick-and-dirty way to get at least a good portion of the music from an LMMS mmp file to music sheets 
 # it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
 # music from LMMS's piano roll to say MuseScore. :) 
@@ -10,9 +10,6 @@
 # - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
 # what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
 # - can't do time signatures other than 4/4
-
-# other todo:
-# bass instrument notes should be adjusted/transposed!!!
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
@@ -26,7 +23,8 @@ import math
 ### important constants! ###
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
-INSTRUMENTS = {"piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar","str", "marc str","pizz","harp","piccolo"}
+INSTRUMENTS = set(["piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar","str", "marc str","pizz","harp","piccolo"])
+BASS_INSTRUMENTS = set(["bass","cello","double bass","trombone","tuba","bassoon","street bass"])
 NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
 
 # these are the true lengths of each note type.
@@ -39,6 +37,8 @@ NOTE_TYPE = {"whole":192 , "half":96, "quarter":48, "eighth":24, "16th":12, "32n
 # these numbers are based on note lengths in LMMS!
 # this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
 NOTE_LENGTHS = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"}
+
+CLEF_TYPE = {"treble": {"sign": "G", 'line': "2"}, "bass": {"sign": "F", "line": "4"}}
 
 ### helpful functions ###
 	
@@ -182,7 +182,7 @@ def createMeasure(parentNode, measureCounter):
 # create initial measure 
 # every first measure of an instrument needs some special properties like clef 
 # all first measures have an attribute section, but if it's a rest measure there are additional fields 
-def createFirstMeasure(parentNode, measureCounter, isRest=False):
+def createFirstMeasure(parentNode, measureCounter, clefType, isRest=False):
 	
 	firstMeasure = createMeasure(currentPart, measureCounter)
 	
@@ -210,9 +210,9 @@ def createFirstMeasure(parentNode, measureCounter, isRest=False):
 	# this needs to be changed depending on instrument!!
 	newClef = ET.SubElement(newMeasureAttributes, "clef")
 	clefSign = ET.SubElement(newClef, "sign")
-	clefSign.text = "G" 
+	clefSign.text = CLEF_TYPE[clefType]["sign"] #"G" 
 	clefLine = ET.SubElement(newClef, "line")
-	clefLine.text = "2"
+	clefLine.text = CLEF_TYPE[clefType]["line"] #"2"
 	
 	if isRest:
 		newNote = ET.SubElement(firstMeasure, "note")
@@ -270,6 +270,12 @@ def createLengthTable(notes):
 	#  <note pan="0" key="67" vol="97" pos="192" len="96"/>
     #  <note pan="0" key="60" vol="82" pos="216" len="48"/>
     #  <note pan="0" key="62" vol="87" pos="264" len="96"/>
+	#
+	# this scenario also:
+	# the note at post 144 becomes a half note and makes the current measure too large by a quarter note 
+	# pos: 144, len: 240, measure: 1
+	# pos: 240, len: 144, measure: 2
+	# this scenario is remedied by only updating the length table if a new smaller length is found for a position already in the table 
 	
 	nextMeasurePos = LMMS_MEASURE_LENGTH
 	for i in range(0, len(notes)):
@@ -288,40 +294,43 @@ def createLengthTable(notes):
 			# so we need to check that here 
 			if i < len(notes)-1 and ((l + p) > int(notes[i+1][0].attrib["pos"])) and p != int(notes[i+1][0].attrib["pos"]):
 				nextNotePos = int(notes[i+1][0].attrib["pos"])
-				lengthTable[p] = nextNotePos - p 
+				
+				# but the new length must be smaller in order to be updated 
+				if nextNotePos - p < lengthTable[p]:
+					lengthTable[p] = nextNotePos - p 
 			
 		else:
-			currMeasurePos = (notes[i][1]-1)*LMMS_MEASURE_LENGTH
+			currMeasurePos = (notes[i][1]-1)*LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
 			nextMeasurePos = currMeasurePos + LMMS_MEASURE_LENGTH
 			
 			# we want to know if this current note carries over into the next measure 
 			# to find out we can see if the current note's position plus its length is greater than the next measure's position (i.e. this note spills over into the next measure)
 			currNoteDistance = p + l 
 
-			#print("currNoteDistance: " + str(currNoteDistance) + " nextMeasurePos: " + str(nextMeasurePos))
 			if currNoteDistance > nextMeasurePos:
 				# truncate the note so that its length it goes only up to the next measure's position 
 				l = nextMeasurePos - p  
-				#print("truncated note that went over to next measure " + str(notes[i][1]+1) + ". new length: " + str(l))
 			
-			if i < len(notes)-1 and ((l + p) > int(notes[i+1][0].attrib["pos"])) and p != int(notes[i+1][0].attrib["pos"]):
-				# similar to above, but checking if current note's length overlaps with the next note's position. 
-				# if the current note ends after the next note starts, truncate the current note's length
-				# the new length will be the difference between the next note's position and the current note's position
-				# it's also important to check that this current note is not in the same position as the next note (which forms a chord)
-				# we need this check because otherwise we might get a 0 for l's value 
-				nextNotePos = int(notes[i+1][0].attrib["pos"])
-				l = nextNotePos - p 
-				#print(str(l) + ", l+p: " + str(l+p) )
-			
+			if i < len(notes)-1:
+				prevNotePos = int(notes[i+1][0].attrib["pos"])
+				if ((l + p) > prevNotePos) and p != prevNotePos:
+					# similar to above, but checking if current note's length overlaps with the next note's position. 
+					# if the current note ends after the next note starts, truncate the current note's length
+					# the new length will be the difference between the next note's position and the current note's position
+					# it's also important to check that this current note is not in the same position as the next note (which forms a chord)
+					# we need this check because otherwise we might get a 0 for l's value 
+					nextNotePos = int(notes[i+1][0].attrib["pos"])
+					l = nextNotePos - p 
+					#print(str(l) + ", l+p: " + str(l+p) )
+
 			lengthTable[p] = l
+			#print(lengthTable)
 			
 	return lengthTable 
 
 
 ### START PROGRAM ###
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
-
 tree = ET.parse('testfiles/hatarakusaibouED-arr.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
 root = tree.getroot()
 
@@ -429,8 +438,8 @@ for el in tree.iter(tag = 'track'):
 						measureNum += 1
 					else:
 						# the newPos might actually be 2 measures over, not just the next measure! 
-						measureNum = int(math.ceil(newPos / LMMS_MEASURE_LENGTH))
-						
+						# need to add 1 because positions start at 0
+						measureNum = int(math.ceil(newPos / LMMS_MEASURE_LENGTH)) + 1
 				
 				patternNotes.append((n, measureNum))
 					
@@ -439,6 +448,7 @@ for el in tree.iter(tag = 'track'):
 		patternNotes = sorted(patternNotes, key=lambda p : int(p[0].attrib["pos"]))
 
 		# this is very helpful for checking notes 
+		#if name == 'horn':
 		#print("----- " + str(name) + " ------------------")
 		#for p in patternNotes:
 		#	print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
@@ -464,14 +474,21 @@ for el in tree.iter(tag = 'track'):
 
 		if firstNoteMeasureNum == 1:
 			# if first note starts from the very beginning, create initial measure without any rests padding
-			currMeasure = createFirstMeasure(currentPart, firstNoteMeasureNum, False)
+			if name in BASS_INSTRUMENTS:
+				currMeasure = createFirstMeasure(currentPart, firstNoteMeasureNum, "bass", False)
+			else:
+				currMeasure = createFirstMeasure(currentPart, firstNoteMeasureNum, "treble", False)
 		else:			
 			# add whole rests first 
 			numWholeRests = firstNoteMeasureNum -1
 			
 			for i in range(0, numWholeRests):
 				if i == 0:
-					createFirstMeasure(currentPart, i + 1, True)
+					#createFirstMeasure(currentPart, i + 1, True)
+					if name in BASS_INSTRUMENTS:
+						createFirstMeasure(currentPart, i + 1, "bass", True)
+					else:
+						createFirstMeasure(currentPart, i + 1, "treble", True)
 				else:
 					addRestMeasure(currentPart, i + 1)
 			
@@ -496,8 +513,7 @@ for el in tree.iter(tag = 'track'):
 				
 				# add the note (but check to see if it belongs to a chord!)
 				if position in positionsSeen:	
-					# make new note but add to a chord
-					# no need to check if need to make a new measure because these notes are in a chord 
+					# this note is part of a chord 
 					addNote(currMeasure, note, True, positionLengths)
 				else:
 					# add rests if needed based on previous note's position, then add the note 
@@ -516,7 +532,8 @@ for el in tree.iter(tag = 'track'):
 				
 				# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 				if (k < len(notes) - 1 and notes[k+1][1] > measureNum ) or (k == (len(notes) - 1)):
-					padRestsToAdd = getRests((measureNum*LMMS_MEASURE_LENGTH) - (position+NOTE_TYPE[findClosestNoteType(positionLengths[position])]))
+					size = (measureNum*LMMS_MEASURE_LENGTH) - (position + NOTE_TYPE[findClosestNoteType(positionLengths[position])])
+					padRestsToAdd = getRests(size)
 					for rest in padRestsToAdd:
 						for l in range(0, padRestsToAdd[rest]):
 							addRest(currMeasure, rest)
@@ -547,6 +564,8 @@ for el in tree.iter(tag = 'track'):
 						# then add the note 
 						positionsSeen.add(position)
 						addNote(currMeasure, note, False, positionLengths)
+						#print(str(restsToAdd))
+						#print(positionLengths)
 					
 					# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 					# scenarios that could trigger this condition: 1 measure with a single note 
