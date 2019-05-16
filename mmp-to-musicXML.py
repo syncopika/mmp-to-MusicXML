@@ -14,7 +14,6 @@ import math
 # - can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
 # - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
 # what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
-# - can't do time signatures other than 4/4
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
@@ -33,7 +32,7 @@ NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#
 # these are the true lengths of each note type.
 # for example, a 16th note has a length of 12
 # these numbers are based on note lengths in LMMS!
-NOTE_TYPE = {"whole":192 , "half":96, "quarter":48, "eighth":24, "16th":12, "32nd":6, "64th":3}
+NOTE_TYPE = {"whole":192, "half":96, "quarter":48, "eighth":24, "16th":12, "32nd":6, "64th":3}
 
 # these are the note types that should be used when given a certain length 
 # if no length perfectly matches, then the closest match is the one to use
@@ -41,7 +40,13 @@ NOTE_TYPE = {"whole":192 , "half":96, "quarter":48, "eighth":24, "16th":12, "32n
 # this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
 NOTE_LENGTHS = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"}
 
+# properties for clef types 
 CLEF_TYPE = {"treble": {"sign": "G", 'line': "2"}, "bass": {"sign": "F", "line": "4"}}
+
+# default values for time signature (4/4) 
+TIME_SIGNATURE_NUMERATOR = "4"
+TIME_SIGNATURE_DENOMINATOR = "4"
+
 
 ### helpful functions ###
 	
@@ -206,16 +211,16 @@ def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False)
 	
 	time = ET.SubElement(new_measure_attributes, "time")
 	time_beats = ET.SubElement(time, "beats")
-	time_beats.text = "4" # get this information from the top of the mmp file!
+	time_beats.text = TIME_SIGNATURE_NUMERATOR
 	time_beat_type = ET.SubElement(time, "beat-type")
-	time_beat_type.text = "4" # get this information from the top of the mmp file!
+	time_beat_type.text = TIME_SIGNATURE_DENOMINATOR 
 
 	# this needs to be changed depending on instrument!!
 	new_clef = ET.SubElement(new_measure_attributes, "clef")
 	clef_sign = ET.SubElement(new_clef, "sign")
-	clef_sign.text = CLEF_TYPE[clef_type]["sign"] #"G" 
+	clef_sign.text = CLEF_TYPE[clef_type]["sign"] 
 	clef_line = ET.SubElement(new_clef, "line")
-	clef_line.text = CLEF_TYPE[clef_type]["line"] #"2"
+	clef_line.text = CLEF_TYPE[clef_type]["line"]
 	
 	if is_rest:
 		new_note = ET.SubElement(first_measure, "note")
@@ -262,9 +267,8 @@ def create_length_table(notes):
 	# the 2nd-to-last note's length should be truncated to 12, the smallest length at that position
 	# that does not carry over to the next measure.
 	#
-	#  <note pan="0" key="79" vol="48" pos="372" len="48"/>
-	#  <note pan="0" key="67" vol="48" pos="372" len="48"/> <=
-	#  <note pan="0" key="77" vol="48" pos="384" len="48"/> <=
+	#  <note pan="0" key="67" vol="48" pos="372" len="48"/>
+	#  <note pan="0" key="77" vol="48" pos="384" len="48"/> 
 	#
 	# we also have to truncate notes within the same measure
 	# example: the 2nd note below happens before the 1st note ends.
@@ -332,16 +336,16 @@ def create_length_table(notes):
 
 
 ### START PROGRAM ###
-tree = ET.parse('testfiles/hatarakusaibouED-arr.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+tree = ET.parse('testfiles/3-4_time_test.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
 root = tree.getroot()
 
 # get the time signature of the piece 
-time_signature_numerator = root.find('head').attrib['timesig_numerator']
-time_signature_denominator = root.find('head').attrib['timesig_denominator']
-#print('the time signature is: ' + str(timeSignatureNumerator) + "/" + str(timeSignatureDenominator))
+TIME_SIGNATURE_NUMERATOR = str(root.find('head').attrib['timesig_numerator'])
+TIME_SIGNATURE_DENOMINATOR = str(root.find('head').attrib['timesig_denominator'])
 
-if time_signature_numerator != '4' or time_signature_denominator != '4':
-	print('time signature is not 4/4. your file might not come out too well :( sorry!')
+# LMMS measure length variable needs to be based on the time signature numerator 
+# a quarter note is always length 48 
+LMMS_MEASURE_LENGTH = NOTE_TYPE["quarter"] * int(TIME_SIGNATURE_NUMERATOR)
 	
 # if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. then at the end we look for nodes containing these names and delete them.
 empty_instruments = []
@@ -377,8 +381,6 @@ for el in tree.iter(tag = 'track'):
 
 
 # now that the instruments have been declared, time to write out the notes for each instrument 
-# for each instrument, we need to write out each measure by noting the properties of each measure
-# then we write out each note in each measure 
 
 # potential problems:
 # the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
