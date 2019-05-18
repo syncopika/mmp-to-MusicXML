@@ -2,6 +2,7 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom 
 import math
+import sys 
 
 # current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
 # this script is meant to be a quick-and-dirty way to get at least a good portion of the music from an LMMS mmp file to music sheets 
@@ -336,7 +337,18 @@ def create_length_table(notes):
 
 
 ### START PROGRAM ###
-tree = ET.parse('testfiles/hatarakusaibouED-arr.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+ #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+file = 'testfiles/hatarakusaibouED-arr.mmp'
+if len(sys.argv) > 1:
+	file = sys.argv[1]
+	
+# extract just the file's name 
+lastSlashIndex = file.rfind("/")
+extensionIndex = file.rfind(".mmp")
+
+outputFileName = file[(lastSlashIndex + 1):extensionIndex]
+	
+tree = ET.parse(file)
 root = tree.getroot()
 
 # get the time signature of the piece 
@@ -355,7 +367,7 @@ print("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMER
 empty_instruments = []
 
 # write a new xml file 
-new_file = open("newxmltest.xml", "w")
+new_file = open(outputFileName + ".xml", "w")
 
 # add the appropriate headers first 
 new_file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -386,7 +398,6 @@ for el in tree.iter(tag = 'track'):
 
 # now that the instruments have been declared, time to write out the notes for each instrument 
 
-# potential problems:
 # the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
 # notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
 # a position, so use that to sort the patterns in order. then write out the notes 
@@ -428,11 +439,7 @@ for el in tree.iter(tag = 'track'):
 			
 			for n in chunk:
 				# because each note's position is relative to their pattern, each note's position should be their pattern pos + note pos 
-				# but an important piece of information is what measure this note falls in. we can find out what measure this note is in 
-				# by first getting the chunk's position and dividing it by the measure length -> this gets us the starting measure number of the chunk 
-				# we can also know what measure the chunk ends at given its length (I don't think we need this info though for this)
-				# so then for each note in the chunk, we keep a counter that accumulates note lengths seen so far 
-				# as soon as that counter equals or exceeds the measure length, we reset it to 0 and increment the measure count 
+				# but an important piece of information is what measure this note falls in.
 				# we'll record the measure in a tuple along with a reference to the note, i.e. (noteReference, measureNumber)
 				note_pos = int(n.attrib["pos"])			
 				new_pos = chunk_pos + note_pos 
@@ -444,7 +451,7 @@ for el in tree.iter(tag = 'track'):
 					if new_pos < ((measure_num + 1)*LMMS_MEASURE_LENGTH):
 						measure_num += 1
 					else:
-						# the newPos might actually be 2 measures over, not just the next measure! 
+						# the newPos might actually be a few measures over, not just the next measure! 
 						# need to add 1 because positions start at 0
 						measure_num = int(math.floor(new_pos / LMMS_MEASURE_LENGTH)) + 1
 				
@@ -464,7 +471,7 @@ for el in tree.iter(tag = 'track'):
 		notes = pattern_notes 
 		
 		# this instrument might not have any notes! (empty track)
-		# if so, need to remove this subelement node at the very  end otherwise MuseScore will complain... 
+		# if so, need to remove this subelement node at the very end otherwise MuseScore will complain... 
 		# (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
 		if len(notes) == 0:
 			empty_instruments.append("P" + str(instrument_counter))
