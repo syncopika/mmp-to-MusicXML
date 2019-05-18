@@ -227,7 +227,7 @@ def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False)
 		new_rest = ET.SubElement(new_note, "rest")
 		new_rest.set("measure", "yes")
 		new_duration = ET.SubElement(new_note, "duration")
-		new_duration.text = "32"
+		new_duration.text = str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)) #"32"
 		
 	return first_measure 
 	
@@ -241,12 +241,12 @@ def add_rest_measure(parent_node, measure_counter):
 	new_rest = ET.SubElement(new_note, "rest")
 	new_rest.set("measure", "yes")
 	new_duration = ET.SubElement(new_note, "duration")
-	new_duration.text = "32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
+	new_duration.text = str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)) #"32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
 
 	return new_rest_measure # return a reference to the newly created measure node 
 
 # checks if a new measure should be added given the current length of notes
-# the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod 192 is 0
+# the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
 def new_measure_check(curr_length):
 	return curr_length%LMMS_MEASURE_LENGTH == 0
 	
@@ -336,7 +336,7 @@ def create_length_table(notes):
 
 
 ### START PROGRAM ###
-tree = ET.parse('testfiles/3-4_time_test.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
+tree = ET.parse('testfiles/hatarakusaibouED-arr.mmp') #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
 root = tree.getroot()
 
 # get the time signature of the piece 
@@ -346,6 +346,10 @@ TIME_SIGNATURE_DENOMINATOR = str(root.find('head').attrib['timesig_denominator']
 # LMMS measure length variable needs to be based on the time signature numerator 
 # a quarter note is always length 48 
 LMMS_MEASURE_LENGTH = NOTE_TYPE["quarter"] * int(TIME_SIGNATURE_NUMERATOR)
+
+print("LMMS_MEASURE_LENGTH: " + str(LMMS_MEASURE_LENGTH))
+print("TIME SIGNATURE: " + str(TIME_SIGNATURE_NUMERATOR) + "/" + str(TIME_SIGNATURE_DENOMINATOR))
+print("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
 	
 # if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. then at the end we look for nodes containing these names and delete them.
 empty_instruments = []
@@ -416,8 +420,8 @@ for el in tree.iter(tag = 'track'):
 			# get the position of the pattern. note that a pattern might not start at position 0!
 			# if it doesn't start at 0 and it's the first pattern, or the current chunk doesn't start
 			# where the previous chunk left off, then you need to make rest measures to fill in any gaps. 
-			# another LMMS xml file property -> every measure is of length 192, so each measure's position 
-			# is a multiple of 192 
+			# another LMMS xml file property -> every measure is of length (time signature numerator * 48), so each measure's position 
+			# is a multiple of that product 
 			chunk = pattern_chunks[i].iter(tag = 'note')
 			chunk_pos = int(pattern_chunks[i].attrib["pos"])
 			measure_num = int(chunk_pos/LMMS_MEASURE_LENGTH) + 1 # patterns always start on a multiple of 192 
@@ -425,10 +429,10 @@ for el in tree.iter(tag = 'track'):
 			for n in chunk:
 				# because each note's position is relative to their pattern, each note's position should be their pattern pos + note pos 
 				# but an important piece of information is what measure this note falls in. we can find out what measure this note is in 
-				# by first getting the chunk's position and dividing it by 192 -> this gets us the starting measure number of the chunk 
+				# by first getting the chunk's position and dividing it by the measure length -> this gets us the starting measure number of the chunk 
 				# we can also know what measure the chunk ends at given its length (I don't think we need this info though for this)
 				# so then for each note in the chunk, we keep a counter that accumulates note lengths seen so far 
-				# as soon as that counter equals or exceeds 192, we reset it to 0 and increment the measure count 
+				# as soon as that counter equals or exceeds the measure length, we reset it to 0 and increment the measure count 
 				# we'll record the measure in a tuple along with a reference to the note, i.e. (noteReference, measureNumber)
 				note_pos = int(n.attrib["pos"])			
 				new_pos = chunk_pos + note_pos 
@@ -442,7 +446,7 @@ for el in tree.iter(tag = 'track'):
 					else:
 						# the newPos might actually be 2 measures over, not just the next measure! 
 						# need to add 1 because positions start at 0
-						measure_num = int(math.ceil(new_pos / LMMS_MEASURE_LENGTH)) + 1
+						measure_num = int(math.floor(new_pos / LMMS_MEASURE_LENGTH)) + 1
 				
 				pattern_notes.append((n, measure_num))
 					
@@ -451,12 +455,12 @@ for el in tree.iter(tag = 'track'):
 		pattern_notes = sorted(pattern_notes, key=lambda p : int(p[0].attrib["pos"]))
 
 		# this is very helpful for checking notes 
-		#if name == 'horn':
-		#print("----- " + str(name) + " ------------------")
-		#for p in pattern_notes:
-		#	print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
-		#print("-----------------------")
-			
+		#if name == 'tuba':
+		#	print("----- " + str(name) + " ------------------")
+		#	for p in pattern_notes:
+		#		print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
+		#	print("-----------------------")
+				
 		notes = pattern_notes 
 		
 		# this instrument might not have any notes! (empty track)
