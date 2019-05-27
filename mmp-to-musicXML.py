@@ -23,7 +23,11 @@ import sys
 # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
-### important constants! ###
+"""
+
+	important constants!
+	
+"""
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 INSTRUMENTS = set(["piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar","str", "marc str","pizz","harp","piccolo"])
@@ -50,10 +54,13 @@ TIME_SIGNATURE_DENOMINATOR = "4"
 
 
 ### helpful functions ###
-	
-# for a given length, find the closest note type 
-# this function attemps to find the closest, largest length that's less than or equal to the given length 
-# returns the closest note type match (i.e. half, quarter, etc.)
+"""
+
+ for a given length, find the closest note type 
+ this function attemps to find the closest, largest length that's less than or equal to the given length 
+ returns the closest note type match (i.e. half, quarter, etc.)
+ 
+"""
 def find_closest_note_type(length):
 	
 	closest_length = None
@@ -65,9 +72,13 @@ def find_closest_note_type(length):
 	if closest_length == None:
 		return NOTE_LENGTHS[3]
 
-# add a new note 
-# can specify if adding a new note to a chord (which appends a chord element)
-# can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
+"""
+
+ add a new note 
+ can specify if adding a new note to a chord (which appends a chord element)
+ can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
+ 
+"""
 def add_note(parent_node, note, is_chord=False, length_table=None):
 
 	pitch = NOTES[int(note.attrib["key"]) % 12]
@@ -99,8 +110,8 @@ def add_note(parent_node, note, is_chord=False, length_table=None):
 		# note that the note length is actually the corrected length
 		# this is because I'm not handling dotted notes right now so that if you use the actual length given by LMMS,
 		# you're going to skip out on some rests and throw everything off 
-		# instead take the note's original length but use NOTE_LENGTHS and NOTE_TYPE to get the corrected length
-		note_length = NOTE_TYPE[find_closest_note_type(length_table[position])] #lengthTable[position]
+		# instead take the note's original length but use NOTE_TYPE to get the corrected length
+		note_length = NOTE_TYPE[find_closest_note_type(length_table[position])]
 	
 	new_duration = ET.SubElement(new_note, "duration")
 	new_duration.text = str(int(note_length/6))
@@ -111,8 +122,12 @@ def add_note(parent_node, note, is_chord=False, length_table=None):
 	
 	return new_note
 	
-# add a new rest of a specific type
-# see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
+"""
+	
+ add a new rest of a specific type
+ see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
+ 
+"""
 def add_rest(parent_node, type):
 	# you will need to figure out the duration given the type! i.e. 16th = duration of 2 if divisions is 8 
 	# so if divisions = 8, then the smallest unit is 32nd notes, since 8 32nd notes go into 1 quarter note 
@@ -123,7 +138,7 @@ def add_rest(parent_node, type):
 	# calculate the correct duration text depending on type 
 	# note that this also depends on divisions!
 	# assuming division = 8 here!
-	# since a duration of 1 = 1 32nd note, we can use 
+	# a duration of 1 = 1 32nd note
 	dur = ""
 	if type == "32nd":
 		dur = "1"
@@ -142,8 +157,11 @@ def add_rest(parent_node, type):
 	new_type.text = type
 	return new_note 
 
-	
-# figure out types and number of rests needed given a length from one note to another 
+"""	
+
+ figure out types and number of rests needed given a length from one note to another 
+ 
+"""
 def get_rests(initial_distance):
 
 	rests_to_add = OrderedDict()
@@ -181,20 +199,26 @@ def get_rests(initial_distance):
 
 	return rests_to_add 
 
+"""
 
-# create a measure node 
+ create a measure node 
+ 
+"""
 def create_measure(parent_node, measure_counter):
 	new_measure = ET.SubElement(parent_node, "measure")
 	new_measure.set("number", str(measure_counter))
 	return new_measure 
-	
-# create initial measure 
-# every first measure of an instrument needs some special properties like clef 
-# all first measures have an attribute section, but if it's a rest measure there are additional fields 
+
+"""	
+
+ create initial measure 
+ every first measure of an instrument needs some special properties like clef 
+ all first measures have an attribute section, but if it's a rest measure there are additional fields 
+ 
+"""
 def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False):
 	
 	first_measure = create_measure(current_part, measure_counter)
-	
 	new_measure_attributes = ET.SubElement(first_measure, "attributes")
 	
 	# for the first measure, we need to indicate divisions, clef, key
@@ -232,7 +256,11 @@ def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False)
 		
 	return first_measure 
 	
-# add a complete measure of rest 
+"""
+
+ add a complete measure of rest 
+ 
+"""
 def add_rest_measure(parent_node, measure_counter):
 	new_rest_measure = ET.SubElement(parent_node, "measure")
 	new_rest_measure.set("number", str(measure_counter))
@@ -246,19 +274,31 @@ def add_rest_measure(parent_node, measure_counter):
 
 	return new_rest_measure # return a reference to the newly created measure node 
 
-# checks if a new measure should be added given the current length of notes
-# the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
+"""
+
+  checks if a new measure should be added given the current length of notes
+  the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
+  
+"""
 def new_measure_check(curr_length):
 	return curr_length%LMMS_MEASURE_LENGTH == 0
 	
-# creates a new measure and returns a reference to it 
+""" 
+
+  creates and returns a new measure
+  
+"""
 def add_new_measure(parent_node, measure_num):
 	curr_measure = ET.SubElement(parent_node, "measure")
 	curr_measure.set("number", str(measure_num))
 	return curr_measure 
 
-# takes list of notes 
-# returns what the length of each note at each position should be 
+"""
+
+ takes list of notes 
+ returns what the length of each note at each position should be 
+ 
+"""
 def create_length_table(notes):
 	length_table = {} 
 	
@@ -336,9 +376,13 @@ def create_length_table(notes):
 	return length_table 
 
 
-### START PROGRAM ###
- #'testfiles/080415pianobgm3popver.mmp' #'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp' #'testfiles/yakusoku_no_neverlandOP_excerpt_pianoarr.mmp'
-file = 'testfiles/hatarakusaibouED-arr.mmp'
+""" 
+	
+	START PROGRAM
+	
+"""
+#'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
+file = 'testfiles/080415pianobgm3popver.mmp'
 if len(sys.argv) > 1:
 	file = sys.argv[1]
 	
@@ -355,13 +399,16 @@ root = tree.getroot()
 TIME_SIGNATURE_NUMERATOR = str(root.find('head').attrib['timesig_numerator'])
 TIME_SIGNATURE_DENOMINATOR = str(root.find('head').attrib['timesig_denominator'])
 
+# get the master pitch. if it's not 0, we can alter the notes accordingly. 
+MASTER_PITCH = int(root.find('head').attrib['masterpitch'])
+
 # LMMS measure length variable needs to be based on the time signature numerator 
 # a quarter note is always length 48 
 LMMS_MEASURE_LENGTH = NOTE_TYPE["quarter"] * int(TIME_SIGNATURE_NUMERATOR)
 
 print("LMMS_MEASURE_LENGTH: " + str(LMMS_MEASURE_LENGTH))
 print("TIME SIGNATURE: " + str(TIME_SIGNATURE_NUMERATOR) + "/" + str(TIME_SIGNATURE_DENOMINATOR))
-print("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
+#print("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
 	
 # if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. then at the end we look for nodes containing these names and delete them.
 empty_instruments = []
@@ -520,7 +567,9 @@ for el in tree.iter(tag = 'track'):
 			measure_num = notes[k][1]
 			
 			position = int(note.attrib["pos"])
-			pitch = NOTES[int(note.attrib["key"]) % 12]
+			
+			# adjust the note based on master pitch 
+			note.attrib["key"] = str(int(note.attrib["key"]) + MASTER_PITCH)
 			
 			# since the notes list contains tuples where tuple[0] is the note object, 
 			# and tuple[1] is the measure the note should go in, we can use this info 

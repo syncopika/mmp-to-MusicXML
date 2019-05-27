@@ -2,10 +2,11 @@
 Currently a basic script that attempts to convert .mmp files (which are XML files) to MusicXML files so that you can import them to MuseScore!    
 Still potentially buggy, but the idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
     
-usage (I'm using Python 3.5 btw):    
+### USAGE (I'm using Python 3.5 btw):    
 `python mmp-to-musicXML.py [file path]`    
+or you can modify line ~385 and just run `python mmp-to-musicXML.py`    
     
-The output will be named whatever the file's name is as an xml file. You can then use MuseScore to view it.    
+The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
 some things to note as of now:    
 - the smallest note type the script can understand is a 64th note, so anything smaller will break things 
