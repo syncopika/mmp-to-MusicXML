@@ -5,7 +5,7 @@ import math
 import sys 
 
 # current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
-# this script is meant to be a quick-and-dirty way to get at least a good portion of the music from an LMMS mmp file to music sheets 
+# this script is meant to be a quick-and-dirty way to get at least a good portion of the music from a LMMS mmp file to music sheets 
 # it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
 # music from LMMS's piano roll to say MuseScore. :) 
 
@@ -17,8 +17,8 @@ import sys
 # what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
-# if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit wihtin a single measure, 
-# before attempting to convert parts will have to be separated (but doing so in LMMS is not too bad - just a bit of copying, pasting and scrubbing)
+# if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit within a single measure, 
+# before attempting to convert, the parts should be separated if you want more proper output (but doing so in LMMS is not too bad - just a bit of copying, pasting and scrubbing)
 
 # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
@@ -31,17 +31,17 @@ import sys
 LMMS_MEASURE_LENGTH = 192
 NUM_DIVISIONS = "8" # number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 INSTRUMENTS = set(["piano", "bass", "vibes", "orchestra", "violin", "cello", "tuba", "trombone", "french horn", "horn", "trumpet", "flute", "oboe", "clarinet", "bassoon", "street bass", "guitar","str", "marc str","pizz","harp","piccolo"])
-BASS_INSTRUMENTS = set(["bass","cello","double bass","trombone","tuba","bassoon","street bass"])
-NOTES = {0:'C', 1:'C#',2:'D',3:'D#',4:'E',5:'F',6:'F#',7:'G',8:'G#',9:'A',10:'A#',11:'B'}
+BASS_INSTRUMENTS = set(["bass", "cello", "double bass", "trombone", "tuba", "bassoon", "street bass"])
+NOTES = {0: 'C', 1: 'C#', 2: 'D',3: 'D#', 4: 'E', 5: 'F', 6: 'F#', 7: 'G', 8: 'G#', 9: 'A', 10: 'A#', 11: 'B'}
 
 # these are the true lengths of each note type.
 # for example, a 16th note has a length of 12
 # these numbers are based on note lengths in LMMS!
-NOTE_TYPE = {"whole":192, "half":96, "quarter":48, "eighth":24, "16th":12, "32nd":6, "64th":3}
+NOTE_TYPE = {"whole": 192, "half": 96, "quarter": 48, "eighth": 24, "16th": 12, "32nd": 6, "64th": 3}
 
 # these are the note types that should be used when given a certain length 
 # if no length perfectly matches, then the closest match is the one to use
-# these numbers are based on note lengths in LMMS!
+# note: these numbers are based on note lengths in LMMS!
 # this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
 NOTE_LENGTHS = {192: "whole", 168: "half", 144: "half", 96: "half", 72: "quarter", 48: "quarter", 36: "eighth", 24: "eighth", 12: "16th", 6: "32nd", 3: "64th"}
 
@@ -52,17 +52,18 @@ CLEF_TYPE = {"treble": {"sign": "G", 'line': "2"}, "bass": {"sign": "F", "line":
 TIME_SIGNATURE_NUMERATOR = "4"
 TIME_SIGNATURE_DENOMINATOR = "4"
 
-
-### helpful functions ###
-"""
-
- for a given length, find the closest note type 
- this function attemps to find the closest, largest length that's less than or equal to the given length 
- returns the closest note type match (i.e. half, quarter, etc.)
- 
-"""
 def find_closest_note_type(length):
+	"""for a given length, find the closest note type 
 	
+	 this function attemps to find the closest, largest length that's less than or equal to the given length 
+	 returns the closest note type match (i.e. half, quarter, etc.)
+	 
+	 Arguments: 
+		- length(int): length of a note 
+		
+	 Returns a string indicating the closest note length
+	 
+	"""
 	closest_length = None
 	
 	for note_length in sorted(NOTE_LENGTHS, reverse=True):
@@ -72,15 +73,21 @@ def find_closest_note_type(length):
 	if closest_length == None:
 		return NOTE_LENGTHS[3]
 
-"""
-
- add a new note 
- can specify if adding a new note to a chord (which appends a chord element)
- can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
- 
-"""
 def add_note(parent_node, note, is_chord=False, length_table=None):
-
+	"""add a new note
+	
+	 can specify if adding a new note to a chord (which appends a chord element)
+	 can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
+	 
+	 Arguments:
+		- parent_node (ElementTree element node): the parent node that the note should be added to 
+		- note (ElementTree element node): a node representing a note 
+		- is_chord (bool): specify if this note is part of a chord 
+		- length_table (dict)
+		
+	 Returns a reference to the element node representing the note
+	 
+	"""
 	pitch = NOTES[int(note.attrib["key"]) % 12]
 	position = int(note.attrib["pos"])
 	new_note = ET.SubElement(parent_node, "note")
@@ -121,14 +128,18 @@ def add_note(parent_node, note, is_chord=False, length_table=None):
 	new_type.text = find_closest_note_type(note_length)
 	
 	return new_note
-	
-"""
-	
- add a new rest of a specific type
- see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
- 
-"""
+
 def add_rest(parent_node, type):
+	"""add a new rest of a specific type
+	 see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
+	 
+	 Arguments:
+		- parent_node (ElementTree element node): the parent node to add the rest to 
+		- type (str): type of note (i.e. eighth, 16th, etc.)
+		
+	 Returns a reference to the element node representing the rest 
+	 
+	"""
 	# you will need to figure out the duration given the type! i.e. 16th = duration of 2 if divisions is 8 
 	# so if divisions = 8, then the smallest unit is 32nd notes, since 8 32nd notes go into 1 quarter note 
 	new_note = ET.SubElement(parent_node, "note")
@@ -157,13 +168,15 @@ def add_rest(parent_node, type):
 	new_type.text = type
 	return new_note 
 
-"""	
-
- figure out types and number of rests needed given a length from one note to another 
- 
-"""
 def get_rests(initial_distance):
-
+	"""figure out types and number of rests needed given a length from one note to another 
+	
+	 Arguments:
+		- initial_distance (int): the distance between 2 notes from the LMMS .mmp file
+		
+	 Returns a dictionary that maps each type of rest to its quantity to add
+	 
+	"""
 	rests_to_add = OrderedDict()
 	
 	# how many whole rests? 
@@ -199,25 +212,35 @@ def get_rests(initial_distance):
 
 	return rests_to_add 
 
-"""
-
- create a measure node 
- 
-"""
 def create_measure(parent_node, measure_counter):
+	"""create a measure node 
+	
+	 Arguments:
+		- parent_node (ElementTree element node)
+		- measure_counter (int)
+		
+	 Returns a reference to a newly created measure node
+	
+	"""
 	new_measure = ET.SubElement(parent_node, "measure")
 	new_measure.set("number", str(measure_counter))
 	return new_measure 
 
-"""	
-
- create initial measure 
- every first measure of an instrument needs some special properties like clef 
- all first measures have an attribute section, but if it's a rest measure there are additional fields 
- 
-"""
 def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False):
-	
+	"""create initial measure of the resulting MusicXML file. 
+	 
+	 Arguments:
+		- parent_node (ElementTree element node)
+		- measure_counter (int)
+		- clef_type (str)
+		- is_rest (bool)
+	 
+	 every first measure of an instrument needs some special properties like clef 
+	 all first measures have an attribute section, but if it's a rest measure there are additional fields 
+	 
+	 Returns a reference to a newly created measure node
+	 
+	"""
 	first_measure = create_measure(current_part, measure_counter)
 	new_measure_attributes = ET.SubElement(first_measure, "attributes")
 	
@@ -256,12 +279,16 @@ def create_first_measure(parent_node, measure_counter, clef_type, is_rest=False)
 		
 	return first_measure 
 	
-"""
-
- add a complete measure of rest 
- 
-"""
 def add_rest_measure(parent_node, measure_counter):
+	"""add a complete measure of rest 
+	
+	 Arguments:
+		- parent_node (ElementTree element node)
+		- measure_counter (int)
+		
+	 Returns a reference to a newly created measure node
+	 
+	"""
 	new_rest_measure = ET.SubElement(parent_node, "measure")
 	new_rest_measure.set("number", str(measure_counter))
 	
@@ -272,34 +299,44 @@ def add_rest_measure(parent_node, measure_counter):
 	new_duration = ET.SubElement(new_note, "duration")
 	new_duration.text = str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)) #"32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
 
-	return new_rest_measure # return a reference to the newly created measure node 
+	return new_rest_measure
 
-"""
-
-  checks if a new measure should be added given the current length of notes
-  the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
-  
-"""
 def new_measure_check(curr_length):
-	return curr_length%LMMS_MEASURE_LENGTH == 0
+	"""checks if a new measure should be added given the current length of notes
 	
-""" 
-
-  creates and returns a new measure
-  
-"""
+	 Arguments:
+		- curr_length (int): the current length of accumulated notes in a measure
+	
+	  the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
+	  
+	 Returns a boolean
+	  
+	"""
+	return (curr_length % LMMS_MEASURE_LENGTH) == 0
+	
 def add_new_measure(parent_node, measure_num):
+	"""creates and returns a new measure
+	
+	 Arguments:
+		- parent_node (ElementTree element node): the node to add the new measure to 
+		- measure_num (int): the new measure's number 
+	  
+	 Returns an ElementTree element node representing the new measure added 
+	  
+	"""
 	curr_measure = ET.SubElement(parent_node, "measure")
 	curr_measure.set("number", str(measure_num))
 	return curr_measure 
 
-"""
-
- takes list of notes 
- returns what the length of each note at each position should be 
- 
-"""
 def create_length_table(notes):
+	"""creates a dictionary mapping note positions in the LMMS .mmp file to what their lengths should be in the MusicXML file  
+	
+	 Arguments:
+		- notes (list): list of ElementTree element nodes representing notes
+	
+	 Returns a dictionary
+	 
+	"""
 	length_table = {} 
 	
 	# also truncate some lengths as needed if they carry over to the next measure?
@@ -347,7 +384,7 @@ def create_length_table(notes):
 					length_table[p] = next_note_pos - p 
 			
 		else:
-			curr_measure_pos = (notes[i][1] - 1)*LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
+			curr_measure_pos = (notes[i][1] - 1) * LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
 			next_measure_pos = curr_measure_pos + LMMS_MEASURE_LENGTH
 			
 			# we want to know if this current note carries over into the next measure 
@@ -389,7 +426,6 @@ if len(sys.argv) > 1:
 # extract just the file's name 
 lastSlashIndex = file.rfind("/")
 extensionIndex = file.rfind(".mmp")
-
 outputFileName = file[(lastSlashIndex + 1):extensionIndex]
 	
 tree = ET.parse(file)
@@ -527,7 +563,6 @@ for el in tree.iter(tag = 'track'):
 		# find out what the smallest note length should be for stacked notes in a chord
 		# this unfortunately means tied notes will be broken
 		position_lengths = create_length_table(notes)
-		#print(positionLengths)
 		
 		# first create the first measure for this intrument. it might be a rest measure, 
 		# or rest measures might need to be added first!
@@ -596,7 +631,7 @@ for el in tree.iter(tag = 'track'):
 				
 				# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 				if (k < len(notes) - 1 and notes[k+1][1] > measure_num ) or (k == (len(notes) - 1)):
-					size = (measure_num*LMMS_MEASURE_LENGTH) - (position + NOTE_TYPE[find_closest_note_type(position_lengths[position])])
+					size = (measure_num * LMMS_MEASURE_LENGTH) - (position + NOTE_TYPE[find_closest_note_type(position_lengths[position])])
 					pad_rests_to_add = get_rests(size)
 					for rest in pad_rests_to_add:
 						for l in range(0, pad_rests_to_add[rest]):
@@ -634,7 +669,7 @@ for el in tree.iter(tag = 'track'):
 					# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 					# scenarios that could trigger this condition: 1 measure with a single note 
 					if (k < len(notes) - 1 and notes[k+1][1] > measure_num ) or (k == (len(notes) - 1)):
-						pad_rests_to_add = get_rests((measure_num*LMMS_MEASURE_LENGTH) - (position + NOTE_TYPE[find_closest_note_type(position_lengths[position])]))
+						pad_rests_to_add = get_rests((measure_num * LMMS_MEASURE_LENGTH) - (position + NOTE_TYPE[find_closest_note_type(position_lengths[position])]))
 						for rest in pad_rests_to_add:
 							for l in range(0, pad_rests_to_add[rest]):
 								add_rest(curr_measure, rest)
@@ -646,7 +681,7 @@ for el in tree.iter(tag = 'track'):
 		
 # still need to add whole rests to the end of each instrument so they all have the same number of measures total, 
 # otherwise a corrupt file will be reported (but it will still work, at least in MuseScore)!
-highest_num_measures  = 0
+highest_num_measures = 0
 for part in part_measures:
 	if part_measures[part] > highest_num_measures:
 		highest_num_measures = part_measures[part]
