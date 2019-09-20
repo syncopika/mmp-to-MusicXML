@@ -1,10 +1,10 @@
-## .mmp to MusicXML 🎶 👏    
-Currently a basic script that attempts to convert .mmp files (which are XML files) to MusicXML files so that you can import them to MuseScore!    
-Still potentially buggy, but the idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
+## 🎶.mmp to MusicXML 🎶    
+Currently a basic script that attempts to convert .mmp files (which are XML files! :D) to MusicXML files so that you can import them to MuseScore!    
+Still probably buggy, but the idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
+Made using Python 3.7.2.
     
-### USAGE (I'm using Python 3.5 btw):    
-`python mmp-to-musicXML.py [file path]`    
-or you can modify line ~385 and just run `python mmp-to-musicXML.py`    
+### USAGE:    
+`python main.py [file path to an .mmp file]`    
     
 The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
@@ -18,6 +18,9 @@ You can try out the script with the included test .mmp files, or check out some 
     
 Turn this:    
 ![lmms .mmp project](images/lmms.png)    
+    
+which is actually something like this:    
+![lmms .mmp project in xml](images/mmp.png)    
     
 into this:    
 ![musicxml file from .mmp into MuseScore](images/musescore.png)    
