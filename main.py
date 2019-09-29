@@ -1,4 +1,4 @@
-from lib.mmp_to_musicXML import MMP_MusicXML_Converter
+from lib.mmp_to_musicxml import MMP_MusicXML_Converter
 
 import sys
 
