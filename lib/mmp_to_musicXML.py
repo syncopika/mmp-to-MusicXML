@@ -25,6 +25,11 @@ import sys
 
 class MMP_MusicXML_Converter():
 
+	"""
+		note that a note element node from mmp looks like this (note the attributes):
+		<note pan="-38" key="53" vol="59" pos="384" len="192"/>
+	"""
+
 	LMMS_MEASURE_LENGTH = 192
 	
 	# number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
@@ -153,7 +158,7 @@ class MMP_MusicXML_Converter():
 		 
 		 Arguments:
 			- parent_node (ElementTree element node): the parent node that the note should be added to 
-			- note (ElementTree element node): a node representing a note 
+			- note (ElementTree element node): a node representing a note given by the mmp file
 			- is_chord (bool): specify if this note is part of a chord 
 			- length_table (dict)
 			
@@ -613,7 +618,7 @@ class MMP_MusicXML_Converter():
 							
 				# sort the notes in the list by position
 				# remember that the elements are tuples => (note, the measure note is in)
-				pattern_notes = sorted(pattern_notes, key=lambda p : int(p[0].attrib["pos"]))
+				pattern_notes = sorted(pattern_notes, key=lambda p: int(p[0].attrib["pos"]))
 
 				# this is very helpful for checking notes 
 				#if name == 'tuba':
