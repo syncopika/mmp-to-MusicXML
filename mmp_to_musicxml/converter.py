@@ -4,6 +4,10 @@ from xml.dom import minidom
 import math
 import sys 
 
+"""
+..module:: mmp_to_musicxml-documentation
+"""
+
 # current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
 # this script is meant to be a quick-and-dirty way to get at least a good portion of the music from a LMMS mmp file to music sheets 
 # it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
@@ -20,15 +24,13 @@ import sys
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit within a single measure, 
 # before attempting to convert, the parts should be separated if you want more proper output (but doing so in LMMS is not too bad - just a bit of copying, pasting and scrubbing)
 
+#note that a note element node from a mmp file looks like this (note the attributes):
+#<note pan="-38" key="53" vol="59" pos="384" len="192"/>
+
 # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
 class MMP_MusicXML_Converter():
-
-	"""
-		note that a note element node from mmp looks like this (note the attributes):
-		<note pan="-38" key="53" vol="59" pos="384" len="192"/>
-	"""
 
 	LMMS_MEASURE_LENGTH = 192
 	
@@ -130,9 +132,9 @@ class MMP_MusicXML_Converter():
 		pass
 
 	def find_closest_note_type(self, length):
-		"""for a given length, find the closest note type 
+		"""For a given length, find the closest note type (i.e. half, whole, quarter)
 		
-		 this function attemps to find the closest, largest length that's less than or equal to the given length 
+		 This function attemps to find the closest, largest length that's less than or equal to the given length 
 		 returns the closest note type match (i.e. half, quarter, etc.)
 		 
 		 Arguments: 
@@ -151,10 +153,10 @@ class MMP_MusicXML_Converter():
 			return self.NOTE_LENGTHS[3]
 
 	def add_note(self, parent_node, note, is_chord=False, length_table=None):
-		"""add a new note
+		"""Add a new note
 		
-		 can specify if adding a new note to a chord (which appends a chord element)
-		 can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
+		 Can specify if adding a new note to a chord (which appends a chord element)
+		 Can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position
 		 
 		 Arguments:
 			- parent_node (ElementTree element node): the parent node that the note should be added to 
@@ -207,8 +209,9 @@ class MMP_MusicXML_Converter():
 		return new_note
 
 	def add_rest(self, parent_node, type):
-		"""add a new rest of a specific type
-		 see here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
+		"""Add a new rest of a specific type
+		
+		 See here for possible types: https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm
 		 
 		 Arguments:
 			- parent_node (ElementTree element node): the parent node to add the rest to 
@@ -246,7 +249,7 @@ class MMP_MusicXML_Converter():
 		return new_note 
 
 	def get_rests(self, initial_distance):
-		"""figure out types and number of rests needed given a length from one note to another 
+		"""Figure out types and number of rests needed given a length from one note to another 
 		
 		 Arguments:
 			- initial_distance (int): the distance between 2 notes from the LMMS .mmp file
@@ -290,11 +293,11 @@ class MMP_MusicXML_Converter():
 		return rests_to_add 
 
 	def create_measure(self, parent_node, measure_counter):
-		"""create a measure node 
+		"""Create a measure node 
 		
 		 Arguments:
 			- parent_node (ElementTree element node)
-			- measure_counter (int)
+			- measure_counter (int): the measure number
 			
 		 Returns a reference to a newly created measure node
 		
@@ -304,16 +307,16 @@ class MMP_MusicXML_Converter():
 		return new_measure 
 
 	def create_first_measure(self, parent_node, measure_counter, clef_type, is_rest=False):
-		"""create initial measure of the resulting MusicXML file. 
+		"""Create initial measure of the resulting MusicXML file. 
 		 
 		 Arguments:
 			- parent_node (ElementTree element node)
-			- measure_counter (int)
-			- clef_type (str)
+			- measure_counter (int): the measure number
+			- clef_type (str): "treble" or "bass"
 			- is_rest (bool)
 		 
-		 every first measure of an instrument needs some special properties like clef 
-		 all first measures have an attribute section, but if it's a rest measure there are additional fields 
+		 Every first measure of an instrument needs some special properties like clef 
+		 All first measures have an attribute section, but if it's a rest measure there are additional fields 
 		 
 		 Returns a reference to a newly created measure node
 		 
@@ -357,7 +360,7 @@ class MMP_MusicXML_Converter():
 		return first_measure 
 		
 	def add_rest_measure(self, parent_node, measure_counter):
-		"""add a complete measure of rest 
+		"""Add a complete measure of rest 
 		
 		 Arguments:
 			- parent_node (ElementTree element node)
@@ -379,20 +382,20 @@ class MMP_MusicXML_Converter():
 		return new_rest_measure
 
 	def new_measure_check(self, curr_length):
-		"""checks if a new measure should be added given the current length of notes
+		"""Checks if a new measure should be added given the current length of notes in a measure so far.
 		
 		 Arguments:
 			- curr_length (int): the current length of accumulated notes in a measure
 		
-		  the length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
+		  The length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
 		  
-		 Returns a boolean
+		 Returns True if a new measure should be added, False if not.
 		  
 		"""
 		return (curr_length % self.LMMS_MEASURE_LENGTH) == 0
 		
 	def add_new_measure(self, parent_node, measure_num):
-		"""creates and returns a new measure
+		"""Creates and returns a new measure
 		
 		 Arguments:
 			- parent_node (ElementTree element node): the node to add the new measure to 
@@ -406,7 +409,7 @@ class MMP_MusicXML_Converter():
 		return curr_measure 
 
 	def create_length_table(self, notes):
-		"""creates a dictionary mapping note positions in the LMMS .mmp file to what their lengths should be in the MusicXML file  
+		"""Creates a dictionary mapping note positions in the LMMS .mmp file to what their lengths should be in the MusicXML file  
 		
 		 Arguments:
 			- notes (list): list of ElementTree element nodes representing notes
@@ -490,8 +493,7 @@ class MMP_MusicXML_Converter():
 		return length_table 
 
 	def convert_file(self, filepath):
-		""" 
-			START PROGRAM	
+		"""Does the converting from .mmp to MusicXML.
 		"""
 		#'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 		file = filepath

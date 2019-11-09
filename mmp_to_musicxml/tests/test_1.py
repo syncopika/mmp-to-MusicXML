@@ -1,4 +1,4 @@
-from ..mmp_to_musicxml import MMP_MusicXML_Converter
+from ..converter import MMP_MusicXML_Converter
 
 import xml.etree.ElementTree as ET 
 from xml.dom import minidom 

@@ -1,11 +1,11 @@
 ## 🎶 .mmp to MusicXML 🎶    
 Currently a basic module that attempts to convert .mmp files (which are XML files! :D) to MusicXML files so that you can import them to MuseScore!    
     
-Still probably buggy, but the idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
-Made using Python 3.7.2.
+The idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
+Made with Python 3.7.2.
     
 ### USAGE:    
-You can just run `python main.py [file path to an .mmp file]` or import the module into another script and use it there. See main.py for an example.    
+You can just run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there.    
     
 The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
@@ -18,7 +18,7 @@ some things to note as of now:
 You can try out the script with the included test .mmp files, or check out some of my results in /example_output!    
     
 For testing, I used pytest, which you can install via `pip install pytest`. You can run the tests just by entering `pytest` while in the project directory.    
-
+I also have some documentation made with Sphinx in docs/build/html.    
     
 Turn this:    
 ![lmms .mmp project](images/lmms.png)    

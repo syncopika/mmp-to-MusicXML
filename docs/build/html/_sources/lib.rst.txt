@@ -1,0 +1,29 @@
+lib package
+===========
+
+Subpackages
+-----------
+
+.. toctree::
+
+   lib.tests
+
+Submodules
+----------
+
+lib.mmp\_to\_musicxml module
+----------------------------
+
+.. automodule:: lib.mmp_to_musicxml
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: lib
+   :members:
+   :undoc-members:
+   :show-inheritance:
