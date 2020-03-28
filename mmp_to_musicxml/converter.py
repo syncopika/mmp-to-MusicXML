@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom 
 import math
 import sys 
+import logging
 
 """
 ..module:: mmp_to_musicxml-documentation
@@ -30,7 +31,7 @@ import sys
 # https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
 # https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
-class MMP_MusicXML_Converter():
+class MMP_MusicXML_Converter:
 
 	LMMS_MEASURE_LENGTH = 192
 	
@@ -129,7 +130,7 @@ class MMP_MusicXML_Converter():
 	TIME_SIGNATURE_DENOMINATOR = "4"
 	
 	def __init__(self):
-		pass
+		logging.basicConfig(level=logging.DEBUG)
 
 	def find_closest_note_type(self, length):
 		"""For a given length, find the closest note type (i.e. half, whole, quarter)
@@ -355,7 +356,7 @@ class MMP_MusicXML_Converter():
 			new_rest = ET.SubElement(new_note, "rest")
 			new_rest.set("measure", "yes")
 			new_duration = ET.SubElement(new_note, "duration")
-			new_duration.text = str(int(self.TIME_SIGNATURE_NUMERATOR) * int(self.NUM_DIVISIONS)) #"32"
+			new_duration.text = str(int(self.TIME_SIGNATURE_NUMERATOR) * int(self.NUM_DIVISIONS))
 			
 		return first_measure 
 		
@@ -377,7 +378,9 @@ class MMP_MusicXML_Converter():
 		new_rest = ET.SubElement(new_note, "rest")
 		new_rest.set("measure", "yes")
 		new_duration = ET.SubElement(new_note, "duration")
-		new_duration.text = str(int(self.TIME_SIGNATURE_NUMERATOR) * int(self.NUM_DIVISIONS)) #"32" # should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
+		
+		# should be beats * duration - here is 32 because 4 beats, each beat has 8 subdivisions 
+		new_duration.text = str(int(self.TIME_SIGNATURE_NUMERATOR) * int(self.NUM_DIVISIONS))
 
 		return new_rest_measure
 
@@ -387,7 +390,8 @@ class MMP_MusicXML_Converter():
 		 Arguments:
 			- curr_length (int): the current length of accumulated notes in a measure
 		
-		  The length passed should be calculated by createLengthTable() so that currLength will always eventually be a value where mod (whatever the measure length is) is 0
+		  The length passed should be calculated by createLengthTable() so that currLength 
+		  will always eventually be a value where mod (whatever the measure length is) is 0
 		  
 		 Returns True if a new measure should be added, False if not.
 		  
@@ -395,7 +399,7 @@ class MMP_MusicXML_Converter():
 		return (curr_length % self.LMMS_MEASURE_LENGTH) == 0
 		
 	def add_new_measure(self, parent_node, measure_num):
-		"""Creates and returns a new measure
+		"""Adds a new measure node to the given parent_node and returns a reference to it
 		
 		 Arguments:
 			- parent_node (ElementTree element node): the node to add the new measure to 
@@ -444,51 +448,51 @@ class MMP_MusicXML_Converter():
 		next_measure_pos = self.LMMS_MEASURE_LENGTH
 		for i in range(0, len(notes)):
 			note = notes[i][0]
-			p = int(note.attrib["pos"])
-			l = int(note.attrib["len"])
+			position = int(note.attrib["pos"])
+			length = int(note.attrib["len"])
 			
-			if p in length_table:
+			if position in length_table:
 			
-				if l < length_table[p]:
-					length_table[p] = l 
+				if length < length_table[position]:
+					length_table[position] = length
 				
 				# there might be an instance where we have at least 2 notes in the same position,
 				# but they're the same length AND they should actually be truncated because they
 				# spill over into another note like in the second if statement below (in the else block) 
 				# so we need to check that here 
-				if i < len(notes)-1 and ((l + p) > int(notes[i+1][0].attrib["pos"])) and p != int(notes[i+1][0].attrib["pos"]):
+				if i < len(notes)-1 and ((length + position) > int(notes[i+1][0].attrib["pos"])) and position != int(notes[i+1][0].attrib["pos"]):
 					next_note_pos = int(notes[i+1][0].attrib["pos"])
 					
 					# but the new length must be smaller in order to be updated 
-					if next_note_pos - p < length_table[p]:
-						length_table[p] = next_note_pos - p 
-				
+					if next_note_pos - position < length_table[position]:
+						length_table[position] = next_note_pos - position 
 			else:
 				curr_measure_pos = (notes[i][1] - 1) * self.LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
 				next_measure_pos = curr_measure_pos + self.LMMS_MEASURE_LENGTH
 				
 				# we want to know if this current note carries over into the next measure 
-				# to find out we can see if the current note's position plus its length is greater than the next measure's position (i.e. this note spills over into the next measure)
-				curr_note_distance = p + l 
+				# to find out we can see if the current note's position plus its length 
+				# is greater than the next measure's position (i.e. this note spills over into the next measure)
+				curr_note_distance = position + length 
 
 				if curr_note_distance > next_measure_pos:
 					# truncate the note so that its length it goes only up to the next measure's position 
-					l = next_measure_pos - p  
+					length = next_measure_pos - position
 				
 				if i < len(notes)-1:
 					prev_note_pos = int(notes[i+1][0].attrib["pos"])
-					if ((l + p) > prev_note_pos) and p != prev_note_pos:
+					if ((length + position) > prev_note_pos) and position != prev_note_pos:
 						# similar to above, but checking if current note's length overlaps with the next note's position. 
 						# if the current note ends after the next note starts, truncate the current note's length
 						# the new length will be the difference between the next note's position and the current note's position
 						# it's also important to check that this current note is not in the same position as the next note (which forms a chord)
 						# we need this check because otherwise we might get a 0 for l's value 
 						next_note_pos = int(notes[i+1][0].attrib["pos"])
-						l = next_note_pos - p 
-						#print(str(l) + ", l+p: " + str(l+p) )
+						length = next_note_pos - position 
+						#logging.debug(str(l) + ", l+p: " + str(l+p) )
 
-				length_table[p] = l
-				#print(lengthTable)
+				length_table[position] = length
+				#logging.debug(lengthTable)
 				
 		return length_table 
 
@@ -519,12 +523,14 @@ class MMP_MusicXML_Converter():
 		# LMMS measure length variable needs to be based on the time signature numerator 
 		# a quarter note is always length 48 
 		self.LMMS_MEASURE_LENGTH = self.NOTE_TYPE["quarter"] * int(self.TIME_SIGNATURE_NUMERATOR)
-
-		print("LMMS_MEASURE_LENGTH: " + str(self.LMMS_MEASURE_LENGTH))
-		print("TIME SIGNATURE: " + str(self.TIME_SIGNATURE_NUMERATOR) + "/" + str(self.TIME_SIGNATURE_DENOMINATOR))
-		#print("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
+	
+		logging.debug(file)
+		logging.debug("LMMS_MEASURE_LENGTH: " + str(self.LMMS_MEASURE_LENGTH))
+		logging.debug("TIME SIGNATURE: " + str(self.TIME_SIGNATURE_NUMERATOR) + "/" + str(self.TIME_SIGNATURE_DENOMINATOR))
+		#logging.debug("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
 			
-		# if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. then at the end we look for nodes containing these names and delete them.
+		# if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. 
+		# then at the end we look for nodes containing these names and delete them.
 		empty_instruments = []
 
 		# write a new xml file 
@@ -624,10 +630,10 @@ class MMP_MusicXML_Converter():
 
 				# this is very helpful for checking notes 
 				#if name == 'tuba':
-				#	print("----- " + str(name) + " ------------------")
+				#	logging.debug("----- " + str(name) + " ------------------")
 				#	for p in pattern_notes:
-				#		print("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
-				#	print("-----------------------")
+				#		logging.debug("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
+				#	logging.debug("-----------------------")
 						
 				notes = pattern_notes 
 				
@@ -741,8 +747,8 @@ class MMP_MusicXML_Converter():
 								# then add the note 
 								positions_seen.add(position)
 								self.add_note(curr_measure, note, False, position_lengths)
-								#print(str(restsToAdd))
-								#print(positionLengths)
+								#logging.debug(str(restsToAdd))
+								#logging.debug(positionLengths)
 							
 							# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 							# scenarios that could trigger this condition: one measure with a single note 
