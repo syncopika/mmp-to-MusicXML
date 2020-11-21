@@ -1,9 +1,11 @@
-from collections import OrderedDict
-import xml.etree.ElementTree as ET 
-from xml.dom import minidom 
-import math
-import sys 
+import json
 import logging
+import math
+import sys
+import xml.etree.ElementTree as ET 
+
+from collections import OrderedDict
+from xml.dom import minidom 
 
 """
 ..module:: mmp_to_musicxml-documentation
@@ -39,37 +41,39 @@ class MMP_MusicXML_Converter:
 	NUM_DIVISIONS = "8"
 	
 	INSTRUMENTS = set([
-		"piano", 
-		"bass", 
-		"vibes", 
-		"orchestra", 
-		"violin", 
-		"cello", 
-		"tuba", 
-		"trombone", 
-		"french horn", 
-		"horn", 
-		"trumpet", 
-		"flute", 
-		"oboe", 
-		"clarinet", 
-		"bassoon", 
-		"street bass", 
+		"piano",
+		"vibes",
+		"orchestra",
+		"violin",
+		"trombone",
+		"french horn",
+		"horn",
+		"trumpet",
+		"flute",
+		"oboe",
+		"clarinet",
 		"guitar",
-		"str", 
+		"str",
 		"marc str",
 		"pizz",
 		"harp",
-		"piccolo"
+		"piccolo",
+		"bass",
+		"cello",
+		"double bass",
+		"trombone",
+		"tuba",
+		"bassoon",
+		"street bass"
 	])
 	
 	BASS_INSTRUMENTS = set([
-		"bass", 
-		"cello", 
-		"double bass", 
-		"trombone", 
-		"tuba", 
-		"bassoon", 
+		"bass",
+		"cello",
+		"double bass",
+		"trombone",
+		"tuba",
+		"bassoon",
 		"street bass"
 	])
 	
@@ -266,19 +270,19 @@ class MMP_MusicXML_Converter:
 		
 		# how many quarter rests? 
 		num_quarter_rests = int(rem_size/48)
-		rem_size = rem_size - num_quarter_rests*48 
+		rem_size -= num_quarter_rests*48 
 		
 		# how many eighth rests?
 		num_eighth_rests = int(rem_size/24)
-		rem_size = rem_size - num_eighth_rests*24 
+		rem_size -= num_eighth_rests*24 
 		
 		# how many 16th rests?
 		num_16th_rests = int(rem_size/12)
-		rem_size = rem_size - num_16th_rests*12 
+		rem_size -= num_16th_rests*12 
 		
 		# how many 32nd rests?
 		num_32nd_rests = int(rem_size/6)
-		rem_size = rem_size - num_32nd_rests*6 
+		rem_size -= num_32nd_rests*6 
 		
 		# how many 64th rests? only go up to 64 for now?
 		num_64th_rests = int(rem_size/3)
@@ -305,7 +309,7 @@ class MMP_MusicXML_Converter:
 		"""
 		new_measure = ET.SubElement(parent_node, "measure")
 		new_measure.set("number", str(measure_counter))
-		return new_measure 
+		return new_measure
 
 	def create_first_measure(self, parent_node, measure_counter, clef_type, is_rest=False):
 		"""Create initial measure of the resulting MusicXML file. 
@@ -410,7 +414,19 @@ class MMP_MusicXML_Converter:
 		"""
 		curr_measure = ET.SubElement(parent_node, "measure")
 		curr_measure.set("number", str(measure_num))
-		return curr_measure 
+		return curr_measure
+		
+	def add_rests_for_length(self, size, curr_measure):
+		""" Adds rests based on a given size
+		
+		Arguments:
+			- size (int): the size of the section that should be filled with rests 
+			- curr_measure (ElementTree element node)
+		"""
+		rests_to_add = self.get_rests(size)
+		for rest_type in rests_to_add:
+			for x in range(0, rests_to_add[rest_type]):
+				self.add_rest(curr_measure, rest_type)
 
 	def create_length_table(self, notes):
 		"""Creates a dictionary mapping note positions in the LMMS .mmp file to what their lengths should be in the MusicXML file  
@@ -476,7 +492,7 @@ class MMP_MusicXML_Converter:
 				curr_note_distance = position + length 
 
 				if curr_note_distance > next_measure_pos:
-					# truncate the note so that its length it goes only up to the next measure's position 
+					# truncate the note so that its length only goes up to the next measure's position 
 					length = next_measure_pos - position
 				
 				if i < len(notes)-1:
@@ -564,10 +580,10 @@ class MMP_MusicXML_Converter:
 
 
 		# now that the instruments have been declared, time to write out the notes for each instrument 
-
 		# the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
 		# notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
 		# a position, so use that to sort the patterns in order. then write out the notes 
+		
 		instrument_counter = 1 	# reset instrumentCounter 
 
 		# we need to keep track of each part - ther part id node and the last measure num they had notes for. 
@@ -684,8 +700,8 @@ class MMP_MusicXML_Converter:
 					note = notes[k][0]
 					note_len = int(notes[k][0].attrib["len"])
 					measure_num = notes[k][1]
-					
 					position = int(note.attrib["pos"])
+					rem_measure_size = (measure_num * self.LMMS_MEASURE_LENGTH) - (position + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[position])])
 					
 					# adjust the note based on master pitch 
 					note.attrib["key"] = str(int(note.attrib["key"]) + MASTER_PITCH)
@@ -702,31 +718,25 @@ class MMP_MusicXML_Converter:
 							# add rests if needed based on previous note's position, then add the note 
 							if k > 0:
 								prev_note_pos = int(notes[k-1][0].attrib["pos"])
-								rests_to_add = self.get_rests(position - (prev_note_pos + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[prev_note_pos])]))
+								rest_length = position - (prev_note_pos + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[prev_note_pos])])
 							else:
-								rests_to_add = self.get_rests(position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH))
+								rest_length = position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH)
 						
-							for rest in rests_to_add:
-								for l in range(0, rests_to_add[rest]):
-									self.add_rest(curr_measure, rest)
+							self.add_rests_for_length(rest_length, curr_measure)
 								
 							positions_seen.add(position)
 							self.add_note(curr_measure, note, False, position_lengths)
 						
 						# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 						if (k < len(notes) - 1 and notes[k+1][1] > measure_num ) or (k == (len(notes) - 1)):
-							size = (measure_num * self.LMMS_MEASURE_LENGTH) - (position + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[position])])
-							pad_rests_to_add = self.get_rests(size)
-							for rest in pad_rests_to_add:
-								for l in range(0, pad_rests_to_add[rest]):
-									self.add_rest(curr_measure, rest)
+							self.add_rests_for_length(rem_measure_size, curr_measure)
 					else:
 						# need to create new measure(s), then add the note
 						if k > 0:
 							num_whole_rests = measure_num - last_measure_num - 1
 							for i in range(0, num_whole_rests):
 								self.add_rest_measure(current_part, notes[k-1][1] + i + 1)
-								
+							
 							# create the new measure to place the note 
 							curr_measure = self.add_new_measure(current_part, measure_num)
 							
@@ -736,14 +746,10 @@ class MMP_MusicXML_Converter:
 								# no need to check if need to make a new measure because these notes are in a chord 
 								self.add_note(curr_measure, note, True, position_lengths)
 							else:
-								# this might be reached when adding the first note of a new measure 
-								rests_to_add = self.get_rests(position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH))
-							
-								for rest in rests_to_add:
-									# add rests smaller than whole rests 
-									for l in range(0, rests_to_add[rest]):
-										self.add_rest(curr_measure, rest)
-										
+								# this is reached when adding the first note of a new measure 
+								rest_length = position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH)
+								self.add_rests_for_length(rest_length, curr_measure)
+								
 								# then add the note 
 								positions_seen.add(position)
 								self.add_note(curr_measure, note, False, position_lengths)
@@ -753,11 +759,8 @@ class MMP_MusicXML_Converter:
 							# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 							# scenarios that could trigger this condition: one measure with a single note 
 							if (k < len(notes) - 1 and notes[k+1][1] > measure_num ) or (k == (len(notes) - 1)):
-								pad_rests_to_add = self.get_rests((measure_num * self.LMMS_MEASURE_LENGTH) - (position + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[position])]))
-								for rest in pad_rests_to_add:
-									for l in range(0, pad_rests_to_add[rest]):
-										self.add_rest(curr_measure, rest)
-					
+								self.add_rests_for_length(rem_measure_size, curr_measure)
+							
 					part_measures[current_part] = measure_num
 					last_measure_num = measure_num
 				
