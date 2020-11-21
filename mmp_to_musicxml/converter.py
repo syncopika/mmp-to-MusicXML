@@ -1,6 +1,4 @@
-import json
 import logging
-import math
 import sys
 import xml.etree.ElementTree as ET 
 
@@ -146,7 +144,6 @@ class MMP_MusicXML_Converter:
 			- length(int): length of a note 
 			
 		 Returns a string indicating the closest note length
-		 
 		"""
 		closest_length = None
 		
@@ -170,7 +167,6 @@ class MMP_MusicXML_Converter:
 			- length_table (dict)
 			
 		 Returns a reference to the element node representing the note
-		 
 		"""
 		pitch = self.NOTES[int(note.attrib["key"]) % 12]
 		position = int(note.attrib["pos"])
@@ -210,7 +206,6 @@ class MMP_MusicXML_Converter:
 		# need to identify the note type 
 		new_type = ET.SubElement(new_note, "type")
 		new_type.text = self.find_closest_note_type(note_length)
-		
 		return new_note
 
 	def add_rest(self, parent_node, type):
@@ -223,7 +218,6 @@ class MMP_MusicXML_Converter:
 			- type (str): type of note (i.e. eighth, 16th, etc.)
 			
 		 Returns a reference to the element node representing the rest 
-		 
 		"""
 		# you will need to figure out the duration given the type! i.e. 16th = duration of 2 if divisions is 8 
 		# so if divisions = 8, then the smallest unit is 32nd notes, since 8 32nd notes go into 1 quarter note 
@@ -265,8 +259,8 @@ class MMP_MusicXML_Converter:
 		rests_to_add = OrderedDict()
 		
 		# how many whole rests? 
-		num_whole_rests = int(initial_distance / self.LMMS_MEASURE_LENGTH)
-		rem_size = initial_distance - num_whole_rests * self.LMMS_MEASURE_LENGTH
+		num_whole_rests = initial_distance // self.LMMS_MEASURE_LENGTH
+		rem_size = initial_distance - (num_whole_rests*self.LMMS_MEASURE_LENGTH)
 		
 		# how many quarter rests? 
 		num_quarter_rests = int(rem_size/48)
@@ -305,7 +299,6 @@ class MMP_MusicXML_Converter:
 			- measure_counter (int): the measure number
 			
 		 Returns a reference to a newly created measure node
-		
 		"""
 		new_measure = ET.SubElement(parent_node, "measure")
 		new_measure.set("number", str(measure_counter))
@@ -324,7 +317,6 @@ class MMP_MusicXML_Converter:
 		 All first measures have an attribute section, but if it's a rest measure there are additional fields 
 		 
 		 Returns a reference to a newly created measure node
-		 
 		"""
 		first_measure = self.create_measure(parent_node, measure_counter)
 		new_measure_attributes = ET.SubElement(first_measure, "attributes")
@@ -372,7 +364,6 @@ class MMP_MusicXML_Converter:
 			- measure_counter (int)
 			
 		 Returns a reference to a newly created measure node
-		 
 		"""
 		new_rest_measure = ET.SubElement(parent_node, "measure")
 		new_rest_measure.set("number", str(measure_counter))
@@ -394,11 +385,10 @@ class MMP_MusicXML_Converter:
 		 Arguments:
 			- curr_length (int): the current length of accumulated notes in a measure
 		
-		  The length passed should be calculated by createLengthTable() so that currLength 
+		  The length passed should be a value given by create_length_table() so that currLength 
 		  will always eventually be a value where mod (whatever the measure length is) is 0
 		  
-		 Returns True if a new measure should be added, False if not.
-		  
+		 Returns True if a new measure should be added, False if not.  
 		"""
 		return (curr_length % self.LMMS_MEASURE_LENGTH) == 0
 		
@@ -409,8 +399,7 @@ class MMP_MusicXML_Converter:
 			- parent_node (ElementTree element node): the node to add the new measure to 
 			- measure_num (int): the new measure's number 
 		  
-		 Returns an ElementTree element node representing the new measure added 
-		  
+		 Returns an ElementTree element node representing the new measure added
 		"""
 		curr_measure = ET.SubElement(parent_node, "measure")
 		curr_measure.set("number", str(measure_num))
@@ -435,7 +424,6 @@ class MMP_MusicXML_Converter:
 			- notes (list): list of ElementTree element nodes representing notes
 		
 		 Returns a dictionary
-		 
 		"""
 		length_table = {} 
 		
@@ -483,7 +471,7 @@ class MMP_MusicXML_Converter:
 					if next_note_pos - position < length_table[position]:
 						length_table[position] = next_note_pos - position 
 			else:
-				curr_measure_pos = (notes[i][1] - 1) * self.LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
+				curr_measure_pos = (notes[i][1]-1) * self.LMMS_MEASURE_LENGTH # notes[i][1]-1 is the measure number 
 				next_measure_pos = curr_measure_pos + self.LMMS_MEASURE_LENGTH
 				
 				# we want to know if this current note carries over into the next measure 
@@ -524,7 +512,7 @@ class MMP_MusicXML_Converter:
 		# extract just the file's name 
 		lastSlashIndex = file.rfind("/")
 		extensionIndex = file.rfind(".mmp")
-		outputFileName = file[(lastSlashIndex + 1):extensionIndex]
+		outputFileName = file[(lastSlashIndex+1):extensionIndex]
 			
 		tree = ET.parse(file)
 		root = tree.getroot()
@@ -578,7 +566,6 @@ class MMP_MusicXML_Converter:
 				new_part_name = ET.SubElement(new_part, "part-name")
 				new_part_name.text = name
 
-
 		# now that the instruments have been declared, time to write out the notes for each instrument 
 		# the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
 		# notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
@@ -631,15 +618,15 @@ class MMP_MusicXML_Converter:
 						# increment measure num if needed
 						if new_pos >= (measure_num*self.LMMS_MEASURE_LENGTH):
 							# if note is within the next measure over 
-							if new_pos < ((measure_num + 1)*self.LMMS_MEASURE_LENGTH):
+							if new_pos < ((measure_num+1)*self.LMMS_MEASURE_LENGTH):
 								measure_num += 1
 							else:
 								# the newPos might actually be a few measures over, not just the next measure! 
 								# need to add 1 because positions start at 0
-								measure_num = int(math.floor(new_pos / self.LMMS_MEASURE_LENGTH)) + 1
+								measure_num = (new_pos // self.LMMS_MEASURE_LENGTH) + 1
 						
 						pattern_notes.append((n, measure_num))
-							
+				
 				# sort the notes in the list by position
 				# remember that the elements are tuples => (note, the measure note is in)
 				pattern_notes = sorted(pattern_notes, key=lambda p: int(p[0].attrib["pos"]))
@@ -682,18 +669,18 @@ class MMP_MusicXML_Converter:
 					for i in range(0, num_whole_rests):
 						if i == 0:
 							if name in self.BASS_INSTRUMENTS:
-								self.create_first_measure(current_part, i + 1, "bass", True)
+								self.create_first_measure(current_part, i+1, "bass", True)
 							else:
-								self.create_first_measure(current_part, i + 1, "treble", True)
+								self.create_first_measure(current_part, i+1, "treble", True)
 						else:
-							self.add_rest_measure(current_part, i + 1)
+							self.add_rest_measure(current_part, i+1)
 					
 					curr_measure = self.add_new_measure(current_part, first_note_measure_num)
 					
 				last_measure_num = first_note_measure_num 
 				
 				# then go through the notes
-				part_measures[current_part] = 0 	# keep track of how many measures this instrument has 
+				part_measures[current_part] = 0 # keep track of how many measures this instrument has 
 				positions_seen = set()
 				for k in range(0, len(notes)):
 				
@@ -720,7 +707,7 @@ class MMP_MusicXML_Converter:
 								prev_note_pos = int(notes[k-1][0].attrib["pos"])
 								rest_length = position - (prev_note_pos + self.NOTE_TYPE[self.find_closest_note_type(position_lengths[prev_note_pos])])
 							else:
-								rest_length = position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH)
+								rest_length = position - ((measure_num-1)*self.LMMS_MEASURE_LENGTH)
 						
 							self.add_rests_for_length(rest_length, curr_measure)
 								
@@ -735,7 +722,7 @@ class MMP_MusicXML_Converter:
 						if k > 0:
 							num_whole_rests = measure_num - last_measure_num - 1
 							for i in range(0, num_whole_rests):
-								self.add_rest_measure(current_part, notes[k-1][1] + i + 1)
+								self.add_rest_measure(current_part, notes[k-1][1]+i+1)
 							
 							# create the new measure to place the note 
 							curr_measure = self.add_new_measure(current_part, measure_num)
@@ -747,7 +734,7 @@ class MMP_MusicXML_Converter:
 								self.add_note(curr_measure, note, True, position_lengths)
 							else:
 								# this is reached when adding the first note of a new measure 
-								rest_length = position - ((measure_num - 1)*self.LMMS_MEASURE_LENGTH)
+								rest_length = position - ((measure_num-1)*self.LMMS_MEASURE_LENGTH)
 								self.add_rests_for_length(rest_length, curr_measure)
 								
 								# then add the note 
@@ -758,7 +745,7 @@ class MMP_MusicXML_Converter:
 							
 							# pad the rest of the measure with rests if needed (i.e. this is the last note of this measure)
 							# scenarios that could trigger this condition: one measure with a single note 
-							if (k < len(notes) - 1 and notes[k+1][1] > measure_num ) or (k == (len(notes) - 1)):
+							if (k < len(notes)-1 and notes[k+1][1] > measure_num) or (k == (len(notes)-1)):
 								self.add_rests_for_length(rem_measure_size, curr_measure)
 							
 					part_measures[current_part] = measure_num
@@ -775,7 +762,7 @@ class MMP_MusicXML_Converter:
 				
 		for part in part_measures:
 			if part_measures[part] < highest_num_measures:
-				for i in range(part_measures[part] + 1, highest_num_measures + 1):
+				for i in range(part_measures[part]+1, highest_num_measures+1):
 					self.add_rest_measure(part, i)
 				
 		# check if we need to remove any nodes for empty instruments 
@@ -788,7 +775,6 @@ class MMP_MusicXML_Converter:
 			for part in part_list.findall('score-part'):
 				if part.attrib['id'] == part_id:
 					part_list.remove(part)
-					
 
 		# write tree to file 
 		# make sure to pretty-print because otherwise everything will be on one line
