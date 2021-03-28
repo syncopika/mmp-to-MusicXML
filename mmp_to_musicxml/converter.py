@@ -41,9 +41,8 @@ class MMP_MusicXML_Converter:
 	INSTRUMENTS = set([
 		"piano",
 		"vibes",
-		"orchestra",
+		"viola",
 		"violin",
-		"trombone",
 		"french horn",
 		"horn",
 		"trumpet",
@@ -51,18 +50,12 @@ class MMP_MusicXML_Converter:
 		"oboe",
 		"clarinet",
 		"guitar",
+		"harp",
+		"piccolo",
+		"orchestra",
 		"str",
 		"marc str",
 		"pizz",
-		"harp",
-		"piccolo",
-		"bass",
-		"cello",
-		"double bass",
-		"trombone",
-		"tuba",
-		"bassoon",
-		"street bass"
 	])
 	
 	BASS_INSTRUMENTS = set([
@@ -72,7 +65,8 @@ class MMP_MusicXML_Converter:
 		"trombone",
 		"tuba",
 		"bassoon",
-		"street bass"
+		"street bass",
+		"timpani",
 	])
 	
 	NOTES = {
@@ -558,7 +552,8 @@ class MMP_MusicXML_Converter:
 		instrument_counter = 1
 		for el in tree.iter(tag = 'track'):
 			name = el.attrib['name']
-			if name in self.INSTRUMENTS:
+			isMuted = el.attrib['muted'] == "1"
+			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
 				new_part = ET.SubElement(part_list, "score-part")
 				new_part.set('id', "P" + str(instrument_counter))
 				instrument_counter += 1
@@ -581,8 +576,9 @@ class MMP_MusicXML_Converter:
 		for el in tree.iter(tag = 'track'):
 
 			name = el.attrib['name']
+			isMuted = el.attrib['muted'] == "1"
 			
-			if name in self.INSTRUMENTS:
+			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
 				
 				# for each valid instrument el, create a new part section that will hold its measures and their notes
 				current_part = ET.SubElement(score_partwise, "part");
