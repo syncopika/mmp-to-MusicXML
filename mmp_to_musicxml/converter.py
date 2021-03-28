@@ -52,6 +52,7 @@ class MMP_MusicXML_Converter:
 		"guitar",
 		"harp",
 		"piccolo",
+		"glockenspiel",
 		"orchestra",
 		"str",
 		"marc str",
