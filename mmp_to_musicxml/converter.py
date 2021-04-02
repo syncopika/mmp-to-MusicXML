@@ -38,6 +38,11 @@ class MMP_MusicXML_Converter:
 	# number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 	NUM_DIVISIONS = "8"
 	
+	# TODO: try setting midi instrument elements within score-part elements https://musescore.org/en/node/1271
+	# need to know the mapping of midi instruments https://en.wikipedia.org/wiki/General_MIDI
+	# also: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-midi-instrument_1.htm
+	# can we get tempo too? where does the sound element go? http://usermanuals.musicxml.com/MusicXML/MusicXML.htm#TutMusicXML4-1.htm%3FTocPath%3DMusicXML%25203.0%2520Tutorial%7C_____5
+	# see: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-sound_1.htm
 	INSTRUMENTS = set([
 		"piano",
 		"vibes",
@@ -69,6 +74,32 @@ class MMP_MusicXML_Converter:
 		"street bass",
 		"timpani",
 	])
+	
+	MIDI_TABLE = {
+		'piano': 1, # acoustic grand
+		'harpsichord': 7,
+		'celesta': 9,
+		'glockenspiel': 10,
+		'vibraphone': 12,
+		'marimba': 13,
+		'xylophone': 14,
+		'tubular bells': 15,
+		'violin': 41,
+		'viola': 42,
+		'cello': 43,
+		'double bass': 44, #contrabass
+		'harp': 47,
+		'timpani': 48,
+		'trumpet': 57,
+		'trombone': 58,
+		'tuba': 59,
+		'horn': 61, # fr horn
+		'oboe': 69,
+		'bassoon': 71,
+		'clarinet': 72,
+		'piccolo': 73,
+		'flute': 74,
+	}
 	
 	NOTES = {
 		0: 'C', 
@@ -561,6 +592,8 @@ class MMP_MusicXML_Converter:
 				
 				new_part_name = ET.SubElement(new_part, "part-name")
 				new_part_name.text = name
+				
+				#TODO: add midi instrument program element (if arg set?)
 
 		# now that the instruments have been declared, time to write out the notes for each instrument 
 		# the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
