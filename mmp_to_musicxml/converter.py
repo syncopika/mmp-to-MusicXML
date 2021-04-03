@@ -9,17 +9,13 @@ from xml.dom import minidom
 ..module:: mmp_to_musicxml-documentation
 """
 
-# current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
-# this script is meant to be a quick-and-dirty way to get at least a good portion of the music from a LMMS mmp file to music sheets 
-# it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
-# music from LMMS's piano roll to say MuseScore. :) 
-
 # future goals: somehow read in a single piano track and be able to figure out which notes should go on the bass staff lol.
 
 # limitations: 
+# - notes that extend beyond a measure will be truncated to fit within a measure
 # - can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
 # - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
-# what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
+#   what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit within a single measure, 
@@ -27,9 +23,6 @@ from xml.dom import minidom
 
 #note that a note element node from a mmp file looks like this (note the attributes):
 #<note pan="-38" key="53" vol="59" pos="384" len="192"/>
-
-# https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
-# https://stackabuse.com/reading-and-writing-xml-files-in-python/
 
 class MMP_MusicXML_Converter:
 
@@ -41,9 +34,8 @@ class MMP_MusicXML_Converter:
 	INSTRUMENTS = set([
 		"piano",
 		"vibes",
-		"orchestra",
+		"viola",
 		"violin",
-		"trombone",
 		"french horn",
 		"horn",
 		"trumpet",
@@ -51,18 +43,13 @@ class MMP_MusicXML_Converter:
 		"oboe",
 		"clarinet",
 		"guitar",
+		"harp",
+		"piccolo",
+		"glockenspiel",
+		"orchestra",
 		"str",
 		"marc str",
 		"pizz",
-		"harp",
-		"piccolo",
-		"bass",
-		"cello",
-		"double bass",
-		"trombone",
-		"tuba",
-		"bassoon",
-		"street bass"
 	])
 	
 	BASS_INSTRUMENTS = set([
@@ -72,8 +59,36 @@ class MMP_MusicXML_Converter:
 		"trombone",
 		"tuba",
 		"bassoon",
-		"street bass"
+		"street bass",
+		"timpani",
 	])
+	
+	# https://en.wikipedia.org/wiki/General_MIDI
+	MIDI_TABLE = {
+		'piano': 1, # acoustic grand
+		'harpsichord': 7,
+		'celesta': 9,
+		'glockenspiel': 10,
+		'vibraphone': 12,
+		'marimba': 13,
+		'xylophone': 14,
+		'tubular bells': 15,
+		'violin': 41,
+		'viola': 42,
+		'cello': 43,
+		'double bass': 44, #contrabass
+		'harp': 47,
+		'timpani': 48,
+		'trumpet': 57,
+		'trombone': 58,
+		'tuba': 59,
+		'horn': 61, # fr horn
+		'oboe': 69,
+		'bassoon': 71,
+		'clarinet': 72,
+		'piccolo': 73,
+		'flute': 74,
+	}
 	
 	NOTES = {
 		0: 'C', 
@@ -503,7 +518,6 @@ class MMP_MusicXML_Converter:
 	def convert_file(self, filepath):
 		"""Does the converting from .mmp to MusicXML.
 		"""
-		#'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 		file = filepath
 		
 		if ".mmp" not in file:
@@ -532,10 +546,6 @@ class MMP_MusicXML_Converter:
 		logging.debug("LMMS_MEASURE_LENGTH: " + str(self.LMMS_MEASURE_LENGTH))
 		logging.debug("TIME SIGNATURE: " + str(self.TIME_SIGNATURE_NUMERATOR) + "/" + str(self.TIME_SIGNATURE_DENOMINATOR))
 		#logging.debug("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
-			
-		# if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. 
-		# then at the end we look for nodes containing these names and delete them.
-		empty_instruments = []
 
 		# write a new xml file 
 		new_file = open(outputFileName + ".xml", "w")
@@ -558,20 +568,53 @@ class MMP_MusicXML_Converter:
 		instrument_counter = 1
 		for el in tree.iter(tag = 'track'):
 			name = el.attrib['name']
-			if name in self.INSTRUMENTS:
+			isMuted = el.attrib['muted'] == "1"
+			inst_count = str(instrument_counter)
+			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
+			
+				# need to also check if there are notes for this instrument. if it's an empty track, skip it
+				if el.find("pattern") is None:
+					continue
+				
 				new_part = ET.SubElement(part_list, "score-part")
-				new_part.set('id', "P" + str(instrument_counter))
-				instrument_counter += 1
+				new_part.set('id', "P" + inst_count)
 				
 				new_part_name = ET.SubElement(new_part, "part-name")
 				new_part_name.text = name
+				
+				# add midi instrument element
+				# TODO: have this togglable via an argument when calling the script?
+				instrumenttrack_element = el.find("instrumenttrack")
+				instrument_pan = instrumenttrack_element.attrib['pan']
+				instrument_vol = instrumenttrack_element.attrib['vol']
+				instrument_pitch = instrumenttrack_element.attrib['pitch'] # this can be important if you want to take into account the pitch offset in LMMS
+				
+				score_instrument_el = ET.SubElement(new_part, "score-instrument")
+				score_instrument_el.set('id', "P" + inst_count + "-I" + inst_count)
+				inst_name_el = ET.SubElement(score_instrument_el, "instrument-name")
+				inst_name_el.text = name
+				
+				midi_instrument_el = ET.SubElement(new_part, "midi-instrument")
+				midi_instrument_el.set('id', "P" + inst_count + "-I" + inst_count)
+				
+				midi_program_el = ET.SubElement(midi_instrument_el, "midi-program")
+				midi_program_el.text = str(self.MIDI_TABLE.get(name.lower(), 1)) # use piano by default if no match found in table
+				
+				volume_el = ET.SubElement(midi_instrument_el, "volume")
+				volume_el.text = "78.7402"
+				
+				pan_el = ET.SubElement(midi_instrument_el, "pan")
+				pan_el.text = str(instrument_pan)
+				
+				# move to next instrument
+				instrument_counter += 1
 
 		# now that the instruments have been declared, time to write out the notes for each instrument 
 		# the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
 		# notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
 		# a position, so use that to sort the patterns in order. then write out the notes 
 		
-		instrument_counter = 1 	# reset instrumentCounter 
+		instrument_counter = 1 	# reset instrument_counter 
 
 		# we need to keep track of each part - ther part id node and the last measure num they had notes for. 
 		# at the very end we need to make sure every part has the same number of measures 
@@ -581,13 +624,9 @@ class MMP_MusicXML_Converter:
 		for el in tree.iter(tag = 'track'):
 
 			name = el.attrib['name']
+			isMuted = el.attrib['muted'] == "1"
 			
-			if name in self.INSTRUMENTS:
-				
-				# for each valid instrument el, create a new part section that will hold its measures and their notes
-				current_part = ET.SubElement(score_partwise, "part");
-				current_part.set("id", "P" + str(instrument_counter))
-				
+			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
 				# get the pattern chunks (which hold the notes)
 				pattern_chunks = []
 				for el2 in el.iter(tag = 'pattern'):
@@ -638,14 +677,15 @@ class MMP_MusicXML_Converter:
 				#		logging.debug("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
 				#	logging.debug("-----------------------")
 						
-				notes = pattern_notes 
+				notes = pattern_notes
 				
-				# this instrument might not have any notes! (empty track)
-				# if so, need to remove this subelement node at the very end otherwise MuseScore will complain... 
-				# (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
+				# if no notes (but empty pattern it seems), skip this instrument
 				if len(notes) == 0:
-					empty_instruments.append("P" + str(instrument_counter))
 					continue
+				
+				# for each valid instrument el, create a new part section that will hold its measures and their notes
+				current_part = ET.SubElement(score_partwise, "part");
+				current_part.set("id", "P" + str(instrument_counter))
 					
 				# find out what the smallest note length should be for stacked notes in a chord
 				# this unfortunately means tied notes will be broken
@@ -764,17 +804,6 @@ class MMP_MusicXML_Converter:
 			if part_measures[part] < highest_num_measures:
 				for i in range(part_measures[part]+1, highest_num_measures+1):
 					self.add_rest_measure(part, i)
-				
-		# check if we need to remove any nodes for empty instruments 
-		for part_id in empty_instruments:
-			for part in score_partwise.findall("part"):
-				if part.attrib['id'] == part_id:
-					score_partwise.remove(part)
-					
-			# remove from part list 
-			for part in part_list.findall('score-part'):
-				if part.attrib['id'] == part_id:
-					part_list.remove(part)
 
 		# write tree to file 
 		# make sure to pretty-print because otherwise everything will be on one line

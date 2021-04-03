@@ -1,0 +1,9 @@
+useful references:
+# https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
+# https://stackabuse.com/reading-and-writing-xml-files-in-python/
+
+MIDI stuff
+# https://musescore.org/en/node/1271
+# https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-midi-instrument_1.htm
+# http://usermanuals.musicxml.com/MusicXML/MusicXML.htm#TutMusicXML4-1.htm%3FTocPath%3DMusicXML%25203.0%2520Tutorial%7C_____5
+# https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-sound_1.htm
