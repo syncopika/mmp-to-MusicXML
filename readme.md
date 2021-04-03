@@ -2,7 +2,6 @@
 Currently a basic module that attempts to convert .mmp files (which are XML files! :D) to MusicXML files so that you can import them to MuseScore!    
     
 The idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
-Made with Python 3.7.2.
     
 ### USAGE:    
 You can just run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there.    
@@ -13,6 +12,7 @@ some things to note as of now:
 - the smallest note type the script can understand is a 64th note, so anything smaller will break things 
 - no tied and/or dotted notes
 - can't identify intended triplets
+- notes that extend past a measure are truncated to fit in the measure they start in
 - I've specified some instruments for the program to identify based on the track names - i.e. flute, piano, clarinet since I work with a lot of those instrument soundfonts. I should extend this to accept TripleOscillator tracks, for example, though as well.    
     
 You can try out the script with the included test .mmp files, or check out some of my results in /example_output!    

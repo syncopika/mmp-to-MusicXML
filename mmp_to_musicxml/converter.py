@@ -9,17 +9,13 @@ from xml.dom import minidom
 ..module:: mmp_to_musicxml-documentation
 """
 
-# current goal: get as many notes as accurately as possible from LMMS to XML for import to MuseScore
-# this script is meant to be a quick-and-dirty way to get at least a good portion of the music from a LMMS mmp file to music sheets 
-# it's not going to provide a perfect or even mostly complete score, but hopefully should reduce the amount of work required to transcribe 
-# music from LMMS's piano roll to say MuseScore. :) 
-
 # future goals: somehow read in a single piano track and be able to figure out which notes should go on the bass staff lol.
 
 # limitations: 
+# - notes that extend beyond a measure will be truncated to fit within a measure
 # - can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
 # - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
-# what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
+#   what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
 
 # ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
 # if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit within a single measure, 
@@ -28,9 +24,6 @@ from xml.dom import minidom
 #note that a note element node from a mmp file looks like this (note the attributes):
 #<note pan="-38" key="53" vol="59" pos="384" len="192"/>
 
-# https://stackoverflow.com/questions/28813876/how-do-i-get-pythons-elementtree-to-pretty-print-to-an-xml-file/28814053
-# https://stackabuse.com/reading-and-writing-xml-files-in-python/
-
 class MMP_MusicXML_Converter:
 
 	LMMS_MEASURE_LENGTH = 192
@@ -38,10 +31,6 @@ class MMP_MusicXML_Converter:
 	# number of divisions per quarter note (see https://www.musicxml.com/tutorial/the-midi-compatible-part/duration/)
 	NUM_DIVISIONS = "8"
 	
-	# TODO: try setting midi instrument elements within score-part elements https://musescore.org/en/node/1271
-	# also: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-midi-instrument_1.htm
-	# can we get tempo too? where does the sound element go? http://usermanuals.musicxml.com/MusicXML/MusicXML.htm#TutMusicXML4-1.htm%3FTocPath%3DMusicXML%25203.0%2520Tutorial%7C_____5
-	# see: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-sound_1.htm
 	INSTRUMENTS = set([
 		"piano",
 		"vibes",
@@ -529,7 +518,6 @@ class MMP_MusicXML_Converter:
 	def convert_file(self, filepath):
 		"""Does the converting from .mmp to MusicXML.
 		"""
-		#'testfiles/011319bgmidea.mmp' #'testfiles/funbgmXMLTEST.mmp' #'testfiles/funbgmXMLTESTsmall.mmp'
 		file = filepath
 		
 		if ".mmp" not in file:
@@ -558,10 +546,6 @@ class MMP_MusicXML_Converter:
 		logging.debug("LMMS_MEASURE_LENGTH: " + str(self.LMMS_MEASURE_LENGTH))
 		logging.debug("TIME SIGNATURE: " + str(self.TIME_SIGNATURE_NUMERATOR) + "/" + str(self.TIME_SIGNATURE_DENOMINATOR))
 		#logging.debug("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
-			
-		# if we come across an empty instrument (i.e. no notes), put their PART ID (i.e. 'P1') in this list. 
-		# then at the end we look for nodes containing these names and delete them.
-		empty_instruments = []
 
 		# write a new xml file 
 		new_file = open(outputFileName + ".xml", "w")
@@ -630,7 +614,7 @@ class MMP_MusicXML_Converter:
 		# notes in LMMS are separated in chunks called 'patterns' in the XML file (.mmp). each pattern has 
 		# a position, so use that to sort the patterns in order. then write out the notes 
 		
-		instrument_counter = 1 	# reset instrumentCounter 
+		instrument_counter = 1 	# reset instrument_counter 
 
 		# we need to keep track of each part - ther part id node and the last measure num they had notes for. 
 		# at the very end we need to make sure every part has the same number of measures 
@@ -643,11 +627,6 @@ class MMP_MusicXML_Converter:
 			isMuted = el.attrib['muted'] == "1"
 			
 			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
-				
-				# for each valid instrument el, create a new part section that will hold its measures and their notes
-				current_part = ET.SubElement(score_partwise, "part");
-				current_part.set("id", "P" + str(instrument_counter))
-				
 				# get the pattern chunks (which hold the notes)
 				pattern_chunks = []
 				for el2 in el.iter(tag = 'pattern'):
@@ -698,14 +677,15 @@ class MMP_MusicXML_Converter:
 				#		logging.debug("pos: " + str(p[0].attrib["pos"]) + ", len: " + str(p[0].attrib["len"]) + ", measure: " + str(p[1]))
 				#	logging.debug("-----------------------")
 						
-				notes = pattern_notes 
+				notes = pattern_notes
 				
-				# this instrument might not have any notes! (empty track)
-				# if so, need to remove this subelement node at the very end otherwise MuseScore will complain... 
-				# (the xml is valid, i.e. it's an empty tag but MuseScore doesn't like that)
+				# if no notes (but empty pattern it seems), skip this instrument
 				if len(notes) == 0:
-					empty_instruments.append("P" + str(instrument_counter))
 					continue
+				
+				# for each valid instrument el, create a new part section that will hold its measures and their notes
+				current_part = ET.SubElement(score_partwise, "part");
+				current_part.set("id", "P" + str(instrument_counter))
 					
 				# find out what the smallest note length should be for stacked notes in a chord
 				# this unfortunately means tied notes will be broken
@@ -824,17 +804,6 @@ class MMP_MusicXML_Converter:
 			if part_measures[part] < highest_num_measures:
 				for i in range(part_measures[part]+1, highest_num_measures+1):
 					self.add_rest_measure(part, i)
-				
-		# check if we need to remove any nodes for empty instruments 
-		for part_id in empty_instruments:
-			for part in score_partwise.findall("part"):
-				if part.attrib['id'] == part_id:
-					score_partwise.remove(part)
-					
-			# remove from part list 
-			for part in part_list.findall('score-part'):
-				if part.attrib['id'] == part_id:
-					part_list.remove(part)
 
 		# write tree to file 
 		# make sure to pretty-print because otherwise everything will be on one line
