@@ -39,7 +39,6 @@ class MMP_MusicXML_Converter:
 	NUM_DIVISIONS = "8"
 	
 	# TODO: try setting midi instrument elements within score-part elements https://musescore.org/en/node/1271
-	# need to know the mapping of midi instruments https://en.wikipedia.org/wiki/General_MIDI
 	# also: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-midi-instrument_1.htm
 	# can we get tempo too? where does the sound element go? http://usermanuals.musicxml.com/MusicXML/MusicXML.htm#TutMusicXML4-1.htm%3FTocPath%3DMusicXML%25203.0%2520Tutorial%7C_____5
 	# see: https://usermanuals.musicxml.com/MusicXML/Content/EL-MusicXML-sound_1.htm
@@ -75,6 +74,7 @@ class MMP_MusicXML_Converter:
 		"timpani",
 	])
 	
+	# https://en.wikipedia.org/wiki/General_MIDI
 	MIDI_TABLE = {
 		'piano': 1, # acoustic grand
 		'harpsichord': 7,
@@ -585,15 +585,45 @@ class MMP_MusicXML_Converter:
 		for el in tree.iter(tag = 'track'):
 			name = el.attrib['name']
 			isMuted = el.attrib['muted'] == "1"
+			inst_count = str(instrument_counter)
 			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
+			
+				# need to also check if there are notes for this instrument. if it's an empty track, skip it
+				if el.find("pattern") is None:
+					continue
+				
 				new_part = ET.SubElement(part_list, "score-part")
-				new_part.set('id', "P" + str(instrument_counter))
-				instrument_counter += 1
+				new_part.set('id', "P" + inst_count)
 				
 				new_part_name = ET.SubElement(new_part, "part-name")
 				new_part_name.text = name
 				
-				#TODO: add midi instrument program element (if arg set?)
+				# add midi instrument element
+				# TODO: have this togglable via an argument when calling the script?
+				instrumenttrack_element = el.find("instrumenttrack")
+				instrument_pan = instrumenttrack_element.attrib['pan']
+				instrument_vol = instrumenttrack_element.attrib['vol']
+				instrument_pitch = instrumenttrack_element.attrib['pitch'] # this can be important if you want to take into account the pitch offset in LMMS
+				
+				score_instrument_el = ET.SubElement(new_part, "score-instrument")
+				score_instrument_el.set('id', "P" + inst_count + "-I" + inst_count)
+				inst_name_el = ET.SubElement(score_instrument_el, "instrument-name")
+				inst_name_el.text = name
+				
+				midi_instrument_el = ET.SubElement(new_part, "midi-instrument")
+				midi_instrument_el.set('id', "P" + inst_count + "-I" + inst_count)
+				
+				midi_program_el = ET.SubElement(midi_instrument_el, "midi-program")
+				midi_program_el.text = str(self.MIDI_TABLE.get(name.lower(), 1)) # use piano by default if no match found in table
+				
+				volume_el = ET.SubElement(midi_instrument_el, "volume")
+				volume_el.text = "78.7402"
+				
+				pan_el = ET.SubElement(midi_instrument_el, "pan")
+				pan_el.text = str(instrument_pan)
+				
+				# move to next instrument
+				instrument_counter += 1
 
 		# now that the instruments have been declared, time to write out the notes for each instrument 
 		# the xml file for a LMMS project might not actually have the notes in order for an instrument!!! 
