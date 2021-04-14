@@ -582,6 +582,9 @@ class MMP_MusicXML_Converter:
 				new_part_name = ET.SubElement(new_part, "part-name")
 				new_part_name.text = name
 				
+				new_part_name_abbr = ET.SubElement(new_part, "part-abbreviation")
+				new_part_name_abbr.text = name[0:2] + "."
+				
 				# add midi instrument element
 				# TODO: have this togglable via an argument when calling the script?
 				instrumenttrack_element = el.find("instrumenttrack")
