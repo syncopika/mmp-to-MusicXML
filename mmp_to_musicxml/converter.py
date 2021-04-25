@@ -326,7 +326,7 @@ class MMP_MusicXML_Converter:
 			- parent_node (ElementTree element node)
 			- measure_counter (int): the measure number
 			- clef_type (str): "treble" or "bass"
-			- is_rest (bool)
+			- is_rest (bool): whether the first measure should be a whole rest
 		 
 		 Every first measure of an instrument needs some special properties like clef 
 		 All first measures have an attribute section, but if it's a rest measure there are additional fields 
@@ -355,7 +355,13 @@ class MMP_MusicXML_Converter:
 		time_beat_type = ET.SubElement(time, "beat-type")
 		time_beat_type.text = self.TIME_SIGNATURE_DENOMINATOR 
 
-		# this needs to be changed depending on instrument!!
+		# on second thought, adding 2 staves may only be useful if your piano parts are single-tracked before processing.
+		# if you go through the effort of separating the left and right hand parts into their own tracks,
+		# then this would probably not be helpful. leaving this here as maybe something to revisit later.
+		# if two_staves:
+			# new_staves = ET.SubElement(new_measure_attributes, "staves")
+			# new_staves.text = "2"
+		
 		new_clef = ET.SubElement(new_measure_attributes, "clef")
 		clef_sign = ET.SubElement(new_clef, "sign")
 		clef_sign.text = self.CLEF_TYPE[clef_type]["sign"] 
@@ -477,8 +483,7 @@ class MMP_MusicXML_Converter:
 				
 				# there might be an instance where we have at least 2 notes in the same position,
 				# but they're the same length AND they should actually be truncated because they
-				# spill over into another note like in the second if statement below (in the else block) 
-				# so we need to check that here 
+				# spill over into another note like in the second if statement below (in the else block) so we need to check that here 
 				if i < len(notes)-1 and ((length + position) > int(notes[i+1][0].attrib["pos"])) and position != int(notes[i+1][0].attrib["pos"]):
 					next_note_pos = int(notes[i+1][0].attrib["pos"])
 					
@@ -505,7 +510,7 @@ class MMP_MusicXML_Converter:
 						# if the current note ends after the next note starts, truncate the current note's length
 						# the new length will be the difference between the next note's position and the current note's position
 						# it's also important to check that this current note is not in the same position as the next note (which forms a chord)
-						# we need this check because otherwise we might get a 0 for l's value 
+						# we need this check because otherwise we might get a 0 for the length value 
 						next_note_pos = int(notes[i+1][0].attrib["pos"])
 						length = next_note_pos - position 
 						#logging.debug(str(l) + ", l+p: " + str(l+p) )
@@ -702,9 +707,9 @@ class MMP_MusicXML_Converter:
 				if first_note_measure_num == 1:
 					# if first note starts from the very beginning, create initial measure without any rests padding
 					if name in self.BASS_INSTRUMENTS:
-						curr_measure = self.create_first_measure(current_part, first_note_measure_num, "bass", False)
+						curr_measure = self.create_first_measure(current_part, first_note_measure_num, "bass", is_rest=False)
 					else:
-						curr_measure = self.create_first_measure(current_part, first_note_measure_num, "treble", False)
+						curr_measure = self.create_first_measure(current_part, first_note_measure_num, "treble", is_rest=False)
 				else:			
 					# add whole rests first 
 					num_whole_rests = first_note_measure_num - 1
@@ -712,9 +717,9 @@ class MMP_MusicXML_Converter:
 					for i in range(0, num_whole_rests):
 						if i == 0:
 							if name in self.BASS_INSTRUMENTS:
-								self.create_first_measure(current_part, i+1, "bass", True)
+								self.create_first_measure(current_part, i+1, "bass", is_rest=True)
 							else:
-								self.create_first_measure(current_part, i+1, "treble", True)
+								self.create_first_measure(current_part, i+1, "treble", is_rest=True)
 						else:
 							self.add_rest_measure(current_part, i+1)
 					
