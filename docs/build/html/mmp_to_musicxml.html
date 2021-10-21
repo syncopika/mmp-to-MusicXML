@@ -48,7 +48,7 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="attribute">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.BASS_INSTRUMENTS">
-<code class="sig-name descname">BASS_INSTRUMENTS</code><em class="property"> = {'bass', 'bassoon', 'cello', 'double bass', 'street bass', 'trombone', 'tuba'}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.BASS_INSTRUMENTS" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">BASS_INSTRUMENTS</code><em class="property"> = {'bass', 'bassoon', 'cello', 'double bass', 'street bass', 'timpani', 'trombone', 'tuba'}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.BASS_INSTRUMENTS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -58,12 +58,17 @@
 
 <dl class="attribute">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.INSTRUMENTS">
-<code class="sig-name descname">INSTRUMENTS</code><em class="property"> = {'bass', 'bassoon', 'cello', 'clarinet', 'double bass', 'flute', 'french horn', 'guitar', 'harp', 'horn', 'marc str', 'oboe', 'orchestra', 'piano', 'piccolo', 'pizz', 'str', 'street bass', 'trombone', 'trumpet', 'tuba', 'vibes', 'violin'}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.INSTRUMENTS" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">INSTRUMENTS</code><em class="property"> = {'clarinet', 'flute', 'french horn', 'glockenspiel', 'guitar', 'harp', 'horn', 'marc str', 'oboe', 'orchestra', 'piano', 'piccolo', 'pizz', 'str', 'trumpet', 'vibes', 'viola', 'violin'}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.INSTRUMENTS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.LMMS_MEASURE_LENGTH">
 <code class="sig-name descname">LMMS_MEASURE_LENGTH</code><em class="property"> = 192</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.LMMS_MEASURE_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.MIDI_TABLE">
+<code class="sig-name descname">MIDI_TABLE</code><em class="property"> = {'bassoon': 71, 'celesta': 9, 'cello': 43, 'clarinet': 72, 'double bass': 44, 'flute': 74, 'glockenspiel': 10, 'harp': 47, 'harpsichord': 7, 'horn': 61, 'marimba': 13, 'oboe': 69, 'piano': 1, 'piccolo': 73, 'timpani': 48, 'trombone': 58, 'trumpet': 57, 'tuba': 59, 'tubular bells': 15, 'vibraphone': 12, 'viola': 42, 'violin': 41, 'xylophone': 14}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.MIDI_TABLE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -87,6 +92,11 @@
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.REST_TYPES">
+<code class="sig-name descname">REST_TYPES</code><em class="property"> = {'16th': '2', '32nd': '1', 'eighth': '4', 'half': '16', 'quarter': '8'}</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.REST_TYPES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.TIME_SIGNATURE_DENOMINATOR">
 <code class="sig-name descname">TIME_SIGNATURE_DENOMINATOR</code><em class="property"> = '4'</em><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.TIME_SIGNATURE_DENOMINATOR" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -97,22 +107,8 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_new_measure">
-<code class="sig-name descname">add_new_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">measure_num</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_new_measure" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds a new measure node to the given parent_node and returns a reference to it</p>
-<dl class="simple">
-<dt>Arguments:</dt><dd><ul class="simple">
-<li><p>parent_node (ElementTree element node): the node to add the new measure to</p></li>
-<li><p>measure_num (int): the new measure’s number</p></li>
-</ul>
-</dd>
-</dl>
-<p>Returns an ElementTree element node representing the new measure added</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_note">
-<code class="sig-name descname">add_note</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">note</em>, <em class="sig-param">is_chord=False</em>, <em class="sig-param">length_table=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_note" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_note</code><span class="sig-paren">(</span><em class="sig-param">parent_node: xml.etree.ElementTree.Element</em>, <em class="sig-param">note: xml.etree.ElementTree.Element</em>, <em class="sig-param">is_chord=False</em>, <em class="sig-param">length_table=None</em><span class="sig-paren">)</span> &#x2192; xml.etree.ElementTree.Element<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_note" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a new note</p>
 <p>Can specify if adding a new note to a chord (which appends a chord element)
 Can also supply a lengthTable, which maps the note positions to the smallest-length-note at each position</p>
@@ -130,13 +126,13 @@ Can also supply a lengthTable, which maps the note positions to the smallest-len
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest">
-<code class="sig-name descname">add_rest</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">type</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_rest</code><span class="sig-paren">(</span><em class="sig-param">parent_node: xml.etree.ElementTree.Element</em>, <em class="sig-param">rest_type: str</em><span class="sig-paren">)</span> &#x2192; xml.etree.ElementTree.Element<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a new rest of a specific type</p>
 <p>See here for possible types: <a class="reference external" href="https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm">https://usermanuals.musicxml.com/MusicXML/Content/ST-MusicXML-note-type-value.htm</a></p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
 <li><p>parent_node (ElementTree element node): the parent node to add the rest to</p></li>
-<li><p>type (str): type of note (i.e. eighth, 16th, etc.)</p></li>
+<li><p>rest_type (str): type of note (i.e. eighth, 16th, etc.)</p></li>
 </ul>
 </dd>
 </dl>
@@ -145,12 +141,12 @@ Can also supply a lengthTable, which maps the note positions to the smallest-len
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest_measure">
-<code class="sig-name descname">add_rest_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">measure_counter</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest_measure" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_rest_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node: xml.etree.ElementTree.Element</em>, <em class="sig-param">measure_num: int</em><span class="sig-paren">)</span> &#x2192; xml.etree.ElementTree.Element<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rest_measure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a complete measure of rest</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
 <li><p>parent_node (ElementTree element node)</p></li>
-<li><p>measure_counter (int)</p></li>
+<li><p>measure_num (int)</p></li>
 </ul>
 </dd>
 </dl>
@@ -159,7 +155,7 @@ Can also supply a lengthTable, which maps the note positions to the smallest-len
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rests_for_length">
-<code class="sig-name descname">add_rests_for_length</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">curr_measure</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rests_for_length" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_rests_for_length</code><span class="sig-paren">(</span><em class="sig-param">size: int</em>, <em class="sig-param">curr_measure: xml.etree.ElementTree.Element</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.add_rests_for_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds rests based on a given size</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
@@ -172,20 +168,20 @@ Can also supply a lengthTable, which maps the note positions to the smallest-len
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.convert_file">
-<code class="sig-name descname">convert_file</code><span class="sig-paren">(</span><em class="sig-param">filepath</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.convert_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">convert_file</code><span class="sig-paren">(</span><em class="sig-param">filepath: str</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.convert_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Does the converting from .mmp to MusicXML.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_first_measure">
-<code class="sig-name descname">create_first_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">measure_counter</em>, <em class="sig-param">clef_type</em>, <em class="sig-param">is_rest=False</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_first_measure" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">create_first_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node: xml.etree.ElementTree.Element</em>, <em class="sig-param">measure_num: int</em>, <em class="sig-param">clef_type: str</em>, <em class="sig-param">is_rest=False</em><span class="sig-paren">)</span> &#x2192; xml.etree.ElementTree.Element<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_first_measure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create initial measure of the resulting MusicXML file.</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
 <li><p>parent_node (ElementTree element node)</p></li>
-<li><p>measure_counter (int): the measure number</p></li>
+<li><p>measure_num (int): the measure number</p></li>
 <li><p>clef_type (str): “treble” or “bass”</p></li>
-<li><p>is_rest (bool)</p></li>
+<li><p>is_rest (bool): whether the first measure should be a whole rest</p></li>
 </ul>
 </dd>
 </dl>
@@ -196,7 +192,7 @@ All first measures have an attribute section, but if it’s a rest measure there
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_length_table">
-<code class="sig-name descname">create_length_table</code><span class="sig-paren">(</span><em class="sig-param">notes</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_length_table" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">create_length_table</code><span class="sig-paren">(</span><em class="sig-param">notes: List[xml.etree.ElementTree.Element]</em><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_length_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a dictionary mapping note positions in the LMMS .mmp file to what their lengths should be in the MusicXML file</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
@@ -209,12 +205,12 @@ All first measures have an attribute section, but if it’s a rest measure there
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_measure">
-<code class="sig-name descname">create_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node</em>, <em class="sig-param">measure_counter</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_measure" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">create_measure</code><span class="sig-paren">(</span><em class="sig-param">parent_node: xml.etree.ElementTree.Element</em>, <em class="sig-param">measure_num: int</em><span class="sig-paren">)</span> &#x2192; xml.etree.ElementTree.Element<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.create_measure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a measure node</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
 <li><p>parent_node (ElementTree element node)</p></li>
-<li><p>measure_counter (int): the measure number</p></li>
+<li><p>measure_num (int): the measure number</p></li>
 </ul>
 </dd>
 </dl>
@@ -223,7 +219,7 @@ All first measures have an attribute section, but if it’s a rest measure there
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.find_closest_note_type">
-<code class="sig-name descname">find_closest_note_type</code><span class="sig-paren">(</span><em class="sig-param">length</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.find_closest_note_type" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">find_closest_note_type</code><span class="sig-paren">(</span><em class="sig-param">length: int</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.find_closest_note_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given length, find the closest note type (i.e. half, whole, quarter)</p>
 <p>This function attemps to find the closest, largest length that’s less than or equal to the given length 
 returns the closest note type match (i.e. half, quarter, etc.)</p>
@@ -238,7 +234,7 @@ returns the closest note type match (i.e. half, quarter, etc.)</p>
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.get_rests">
-<code class="sig-name descname">get_rests</code><span class="sig-paren">(</span><em class="sig-param">initial_distance</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.get_rests" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_rests</code><span class="sig-paren">(</span><em class="sig-param">initial_distance: int</em><span class="sig-paren">)</span> &#x2192; collections.OrderedDict<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.get_rests" title="Permalink to this definition">¶</a></dt>
 <dd><p>Figure out types and number of rests needed given a length from one note to another</p>
 <dl class="simple">
 <dt>Arguments:</dt><dd><ul class="simple">
@@ -252,7 +248,7 @@ This is so when traversing the dictionary you can get the smallest rest first to
 
 <dl class="method">
 <dt id="mmp_to_musicxml.converter.MMP_MusicXML_Converter.new_measure_check">
-<code class="sig-name descname">new_measure_check</code><span class="sig-paren">(</span><em class="sig-param">curr_length</em><span class="sig-paren">)</span><a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.new_measure_check" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">new_measure_check</code><span class="sig-paren">(</span><em class="sig-param">curr_length: int</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#mmp_to_musicxml.converter.MMP_MusicXML_Converter.new_measure_check" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if a new measure should be added given the current length of notes in a measure so far.</p>
 <dl>
 <dt>Arguments:</dt><dd><blockquote>
@@ -260,7 +256,7 @@ This is so when traversing the dictionary you can get the smallest rest first to
 <li><p>curr_length (int): the current length of accumulated notes in a measure</p></li>
 </ul>
 </div></blockquote>
-<p>The length passed should be calculated by createLengthTable() so that currLength 
+<p>The length passed should be a value given by create_length_table() so that currLength 
 will always eventually be a value where mod (whatever the measure length is) is 0</p>
 </dd>
 </dl>
