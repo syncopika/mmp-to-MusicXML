@@ -1,5 +1,5 @@
 ## 🎶 .mmp to MusicXML 🎶    
-Currently a basic module that attempts to convert .mmp files (which are XML files! :D) to MusicXML files so that you can import them to MuseScore!    
+A Python module that attempts to convert .mmp files (which are XML files :D) to MusicXML files so that you can import them to MuseScore!    
     
 The idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
     
