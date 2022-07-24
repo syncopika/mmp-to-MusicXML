@@ -4,7 +4,9 @@ import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
 from typing import List
-from xml.dom import minidom 
+from xml.dom import minidom
+
+from mmp_to_musicxml.other_utils.note_checker import NoteChecker
 
 """
 ..module:: mmp_to_musicxml-documentation
@@ -51,19 +53,24 @@ class MMP_MusicXML_Converter:
 		"orchestra",
 		"str",
 		"marc str",
-		"pizz",
+        "violins",
+        "violas",
+        "tenor sax"
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
 	BASS_INSTRUMENTS = set([
 		"bass",
 		"cello",
+        "basses",
+        "cellos",
 		"double bass",
 		"trombone",
 		"tuba",
 		"bassoon",
 		"street bass",
 		"timpani",
+        "bass clarinet"
 	])
 	
 	# https://en.wikipedia.org/wiki/General_MIDI
@@ -160,9 +167,16 @@ class MMP_MusicXML_Converter:
 	# default values for time signature (4/4) 
 	TIME_SIGNATURE_NUMERATOR = "4"
 	TIME_SIGNATURE_DENOMINATOR = "4"
+    
+    # note checker to check if any instrument notes are out of the traditional range
+	NOTE_CHECKER = None
 	
-	def __init__(self):
+	def __init__(self, check_notes=False):
 		logging.basicConfig(level=logging.DEBUG)
+		
+		if check_notes:
+			logging.debug("note checking is on")
+			self.NOTE_CHECKER = NoteChecker()
 
 	def find_closest_note_type(self, length: int) -> str:
 		"""For a given length, find the closest note type (i.e. half, whole, quarter)
@@ -733,6 +747,12 @@ class MMP_MusicXML_Converter:
 					
 					# adjust the note based on master pitch 
 					note.attrib["key"] = str(int(note.attrib["key"]) + MASTER_PITCH)
+					
+					# check if note is within normal range if needed
+					if self.NOTE_CHECKER:
+						note_name = self.NOTES[int(note.attrib["key"]) % 12]
+						note_octave = int(int(note.attrib["key"]) / 12)
+						self.NOTE_CHECKER.evaluate_note(name, note_name, note_octave, f"measure {measure_num}")
 					
 					# since the notes list contains tuples where tuple[0] is the note object, 
 					# and tuple[1] is the measure the note should go in, we can use this info 

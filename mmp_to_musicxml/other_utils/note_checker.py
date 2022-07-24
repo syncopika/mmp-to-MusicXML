@@ -9,13 +9,24 @@ class NoteChecker:
 
     # using # instad of b to match the note options in converter.py
     instrument_ranges = {
+        "flute": {"min": "B3", "max": "D7"},
+        "piccolo": {"min": "B4", "max": "C8"},
         "clarinet": {"min": "E3", "max": "C7"}, # E3-C7 is the valid range for clarinet
         "english horn": {"min": "E3", "max": "A5"},
         "oboe": {"min": "A#2", "max": "G6"}, #min listed as Bb3
-        "bassoon": {"min": "A#0", "max": "D#4"}, #min listed as Bb1, max as Eb5
+        "bassoon": {"min": "A#0", "max": "D#5"}, #min listed as Bb1, max as Eb5
         "trombone": {"min": "E2", "max": "F5"},
         "horn": {"min": "B1", "max": "F5"},
         "tuba": {"min": "D1", "max": "G4"},
+        "violin": {"min": "G3", "max": "A7"},
+        "viola": {"min": "C3", "max": "A6"},
+        "cello": {"min": "C2", "max": "A5"},
+        "double bass": {"min": "B0", "max": "G4"},
+        "harp": {"min": "B0", "max": "G#7"},
+        "timpani": {"min": "D2", "max": "C4"},
+        "vibraphone": {"min": "F3", "max": "F6"},
+        "tubular bells": {"min": "C4", "max": "F5"},
+        "glockenspiel": {"min": "F5", "max": "C8"},
     }
 
     def __init__(self):
@@ -37,8 +48,7 @@ class NoteChecker:
             
         return None, None
     
-    # test case: min is A#2 and note is A#1. A#1 should be invalid
-    # test case: min is A#4, note is A4. A4 should be invalid
+    
     def evaluate_note(self, instrument_name: str, note: str, octave: int, location=""):
         if instrument_name not in self.instrument_ranges:
             #TODO: maybe log a warning that this instrument doesn't exist?
@@ -48,7 +58,7 @@ class NoteChecker:
             
         min_note, min_octave = self.extract_note_and_octave(self.instrument_ranges[instrument_name]["min"])
         max_note, max_octave = self.extract_note_and_octave(self.instrument_ranges[instrument_name]["max"])
-        print(f"min note: {min_note}, min octave: {min_octave}, max note: {max_note}, max octave: {max_octave}")
+        #print(f"min note: {min_note}, min octave: {min_octave}, max note: {max_note}, max octave: {max_octave}")
         
         # check if note octave falls in the octave range first
         if octave < min_octave or octave > max_octave:
@@ -63,14 +73,14 @@ class NoteChecker:
             # e.g. if max is D3 and note is F3
             valid_note = False
 
-        # special case for sharp min note
-        if self.is_sharp(min_note):
+        # special case for sharp min note and same octave
+        if self.is_sharp(min_note) and octave == min_octave:
             if not self.is_sharp(note) and self.char_position(note) == self.char_position(min_note):
                 # if note is like A1 but min note is A#1
                 valid_note = False
                 
         if not valid_note:
-            logging.debug(f"Warning: {note}{octave} is not within the expected range for {instrument_name}. @measure {location}")
+            logging.debug(f"Warning: {note}{octave} is not within the expected range for {instrument_name}. @{location}")
             return False
             
         return valid_note
