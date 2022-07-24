@@ -19,4 +19,4 @@ def test_evaluate_note(notechecker):
     assert notechecker.evaluate_note("clarinet", "C", 5) is True
     assert notechecker.evaluate_note("clarinet", "F", 3) is True
     assert notechecker.evaluate_note("clarinet", "E#", 3) is True
-	assert notechecker.evaluate_note("oboe", "A", 5) is True
+    assert notechecker.evaluate_note("oboe", "A", 5) is True

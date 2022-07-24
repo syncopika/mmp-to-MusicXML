@@ -53,24 +53,24 @@ class MMP_MusicXML_Converter:
 		"orchestra",
 		"str",
 		"marc str",
-        "violins",
-        "violas",
-        "tenor sax"
+		"violins",
+		"violas",
+		"tenor sax"
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
 	BASS_INSTRUMENTS = set([
 		"bass",
 		"cello",
-        "basses",
-        "cellos",
+		"basses",
+		"cellos",
 		"double bass",
 		"trombone",
 		"tuba",
 		"bassoon",
 		"street bass",
 		"timpani",
-        "bass clarinet"
+		"bass clarinet"
 	])
 	
 	# https://en.wikipedia.org/wiki/General_MIDI
