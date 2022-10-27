@@ -65,6 +65,7 @@ class NoteChecker:
             valid_note = False
         
         # if octaves are the same, then check the note (e.g. A1 should be considered invalid if the range min is D1)
+		# TODO: bug - B3 is ok if min is E3; e.g. E -> F -> G -> A -> B. so actually need some more logic to determine if a note comes before another (can't rely on char position)
         if octave == min_octave and self.char_position(note) < self.char_position(min_note):
             # e.g. if min is D3 and note is A3
             valid_note = False
