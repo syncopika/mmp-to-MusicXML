@@ -32,4 +32,6 @@ def test_evaluate_note(notechecker):
     assert notechecker.evaluate_note("oboe", "A#", 2) is True
     assert notechecker.evaluate_note("oboe", "B", 3) is True
     assert notechecker.evaluate_note("oboe", "A", 5) is True
+    assert notechecker.evaluate_note("oboe", "B", 2) is True
     assert notechecker.evaluate_note("oboe", "A", 2) is False
+    assert notechecker.evaluate_note("oboe", "G", 2) is False
