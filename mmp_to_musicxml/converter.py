@@ -6,7 +6,7 @@ from collections import OrderedDict
 from typing import List
 from xml.dom import minidom
 
-from mmp_to_musicxml.other_utils.note_checker import NoteChecker
+from mmp_to_musicxml.utils.note_checker import NoteChecker
 
 """
 ..module:: mmp_to_musicxml-documentation
@@ -39,7 +39,9 @@ class MMP_MusicXML_Converter:
 		"piano",
 		"vibes",
 		"viola",
+		"violas",
 		"violin",
+		"violins",
 		"french horn",
 		"horn",
 		"trumpet",
@@ -53,8 +55,6 @@ class MMP_MusicXML_Converter:
 		"orchestra",
 		"str",
 		"marc str",
-		"violins",
-		"violas",
 		"tenor sax"
 	])
 	

@@ -7,7 +7,7 @@ import logging
 
 class NoteChecker:
 
-    # using # instad of b to match the note options in converter.py
+    # using # instad of b to match the note options in converter.pyg
     instrument_ranges = {
         "flute": {"min": "B3", "max": "D7"},
         "piccolo": {"min": "B4", "max": "C8"},
@@ -28,13 +28,15 @@ class NoteChecker:
         "tubular bells": {"min": "C4", "max": "F5"},
         "glockenspiel": {"min": "F5", "max": "C8"},
     }
+    
+    notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] # order matters!
 
     def __init__(self):
         logging.basicConfig(level=logging.DEBUG)
         
-    def char_position(self, note: str):
-        # assuming input looks like A1 or G5 or A#2
-        return ord(note[0]) - 97
+    # we can use the index of note in notes as a 'weight' so we can easily compare with other notes whether it comes before or after
+    def get_note_weight(self, note: str):
+        return self.notes.index(note) + 1
         
     def is_sharp(self, note: str):
         return '#' in note
@@ -65,17 +67,17 @@ class NoteChecker:
             valid_note = False
         
         # if octaves are the same, then check the note (e.g. A1 should be considered invalid if the range min is D1)
-        if octave == min_octave and self.char_position(note) < self.char_position(min_note):
+        if octave == min_octave and self.get_note_weight(note) < self.get_note_weight(min_note):
             # e.g. if min is D3 and note is A3
             valid_note = False
             
-        if octave == max_octave and self.char_position(note) > self.char_position(max_note):
+        if octave == max_octave and self.get_note_weight(note) > self.get_note_weight(max_note):
             # e.g. if max is D3 and note is F3
             valid_note = False
 
         # special case for sharp min note and same octave
         if self.is_sharp(min_note) and octave == min_octave:
-            if not self.is_sharp(note) and self.char_position(note) == self.char_position(min_note):
+            if not self.is_sharp(note) and self.get_note_weight(note) == self.get_note_weight(min_note):
                 # if note is like A1 but min note is A#1
                 valid_note = False
                 
