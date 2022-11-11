@@ -55,7 +55,8 @@ class MMP_MusicXML_Converter:
 		"orchestra",
 		"str",
 		"marc str",
-		"tenor sax"
+		"tenor sax",
+		"tubular bells",
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
