@@ -1,31 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <style>
+      body {
+        font-family: Arial;
+      }
+    </style>
+  </head>
+  <body>
+    <h1> mmp-to-musicxml </h1>
+    <p> convert .mmp LMMS files to MusicXML! </p>
+    <input type="file" accept=".mmp" onchange="convertMmp(this.files[0])">
+    <script type="text/javascript">
+      // https://github.com/pyodide/pyodide/issues/679
+      // https://pyodide.org/en/stable/usage/file-system.html
+      // https://stackoverflow.com/questions/61496876/how-can-i-load-a-file-from-a-html-input-into-emscriptens-memfs-file-system
+      
+      /*
+        steps:
+        1. write mmp file to pyodide in-memory file system
+        2. pass the filename to the mmp conversion function
+        3. do the thing
+        4. delete the mmp file from the in-memory file system
+        5. read the newly produced musicXML file from the file system for download
+        6. delete the musicXML file from the file system
+      */
+
+      async function convertMmp(file){
+        const pyodide = await loadPyodide();
+				
+				const xmlHeader1 = `'<?xml version="1.0" encoding="UTF-8"?\>\\n'`;
+        const xmlHeader2 = `'<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\\n'`;
+        
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = evt => {
+          // write the file to pyodide.FS
+          const filedata = evt.target.result;
+          const arrayBufferView = new Uint8Array(filedata);
+          
+          pyodide.FS.writeFile(`/${file.name}`, arrayBufferView);
+        
+          // do the conversion stuff
+          pyodide.runPython(
+          `
 import logging
 import sys
+import math
 import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
 from typing import List
 from xml.dom import minidom
-
-from mmp_to_musicxml.utils.note_checker import NoteChecker
-
-"""
-..module:: mmp_to_musicxml-documentation
-"""
-
-# future goals: somehow read in a single piano track and be able to figure out which notes should go on the bass staff lol.
-
-# limitations: 
-# - notes that extend beyond a measure will be truncated to fit within a measure
-# - can't handle/identify TRIPLETS! :0 or anything smaller than 64th notes...
-# - gotta normalize notes such that they're multiples of 8! i.e. if in LMMS you write down some notes using some smaller division like 1/64,
-#   what looks like an eighth note (which should have a length of 24) might actually have a length of 25, which will throw everything off!
-
-# ALSO IMPORTANT: if you're like me I tend to write all my string parts on one track, as well as for piano. unfortunately, this will break things 
-# if trying to convert to xml. since there are so many different rhythms and notes you could possibly fit within a single measure, 
-# before attempting to convert, the parts should be separated if you want more proper output (but doing so in LMMS is not too bad - just a bit of copying, pasting and scrubbing)
-
-#note that a note element node from a mmp file looks like this (note the attributes):
-#<note pan="-38" key="53" vol="59" pos="384" len="192"/>
 
 class MMP_MusicXML_Converter:
 
@@ -295,7 +322,7 @@ class MMP_MusicXML_Converter:
 		rests_to_add = OrderedDict()
 		
 		# how many whole rests? 
-		num_whole_rests = initial_distance // self.LMMS_MEASURE_LENGTH
+		num_whole_rests = math.floor(initial_distance / self.LMMS_MEASURE_LENGTH)
 		rem_size = initial_distance - (num_whole_rests*self.LMMS_MEASURE_LENGTH)
 		
 		# how many quarter rests? 
@@ -571,8 +598,8 @@ class MMP_MusicXML_Converter:
 		new_file = open(outputFileName + ".xml", "w")
 
 		# add the appropriate headers first 
-		new_file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-		new_file.write('<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n')
+		new_file.write(${xmlHeader1})
+		new_file.write(${xmlHeader2})
 
 		# create the general tree structure, then fill in accordingly
 		score_partwise = ET.Element('score-partwise')
@@ -834,5 +861,35 @@ class MMP_MusicXML_Converter:
 		# write tree to file 
 		# make sure to pretty-print because otherwise everything will be on one line
 		data = minidom.parseString(ET.tostring(score_partwise, encoding="unicode")).toprettyxml(indent="    ")
-		data = data.replace("<?xml version=\"1.0\" ?>", "") # toprettyxml adds a xml declaration, but I have it already written to the file
+		data = data.replace(\"<?xml version=\\"1.0\\" ?>\", "") # toprettyxml adds a xml declaration, but I have it already written to the file
 		new_file.write(data)
+
+converter = MMP_MusicXML_Converter()
+converter.convert_file("/${file.name}")
+          `);
+        
+          // delete the mmp file
+          pyodide.FS.unlink(`/${file.name}`);
+          console.log(`${file.name} deleted`);
+          
+          // get the musicXML file
+          const filenameWithoutExt = file.name.split('.mmp')[0];
+					console.log(filenameWithoutExt);
+          const musicxmlData = pyodide.FS.readFile(`./${filenameWithoutExt}.xml`, {encoding: "utf8"});
+					console.log(musicxmlData);
+          
+          const blob = new Blob([musicxmlData], {type: 'text/xml'});
+          const el = document.createElement('a');
+          el.href = window.URL.createObjectURL(blob);
+          el.download = `${filenameWithoutExt}.xml`;
+          el.click();
+          console.log('got the musicXML file!');
+          
+          // delete the musicXML file
+          pyodide.FS.unlink(`./${filenameWithoutExt}.xml`);
+          console.log('musicXML file deleted!');
+      }
+    }
+    </script>
+  </body>
+</html>
