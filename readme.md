@@ -3,8 +3,10 @@ A Python module that attempts to convert .mmp files (which are XML files :D) to 
     
 The idea is to help provide significant time savings in getting your music from LMMS to sheets. :)    
     
+Try it in the browser! https://syncopika.github.io/mmp-to-MusicXML/  
+    
 ### USAGE:    
-You can just run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there.    
+Run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there.    
     
 The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
