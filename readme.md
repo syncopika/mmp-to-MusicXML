@@ -6,7 +6,7 @@ The idea is to help provide significant time savings in getting your music from 
 Try it in the browser! https://syncopika.github.io/mmp-to-MusicXML/  
     
 ### USAGE:    
-Run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there.    
+Run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there. There are a couple optional arguments you can supply to check if certain instrument notes fall out of the expected range (via `-c`) or to set the key signature of the piece (via `-k`). See `python convert-mmp.py -h` for more details.    
     
 The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
