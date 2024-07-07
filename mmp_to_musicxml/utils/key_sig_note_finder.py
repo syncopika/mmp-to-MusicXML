@@ -17,6 +17,8 @@ class KeySignatureNoteFinder:
 		'g#': 'Ab',
 		'd#': 'Eb',
 		'e#': 'F',
+		'b': 'Cb',
+		'e': 'Fb',
 	}
 
 	# note we only care about flat key signatures

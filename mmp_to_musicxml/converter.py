@@ -266,6 +266,12 @@ class MMP_MusicXML_Converter:
 			# depending on specified key signature
 			if self.NOTE_ADJUSTER.need_to_convert_to_flat(pitch, self.SPECIFIED_KEY_SIGNATURE):
 				adjusted_note = self.NOTE_ADJUSTER.adjust_note_per_key_signature(pitch, self.SPECIFIED_KEY_SIGNATURE)
+				
+				# adjust octave as well if we adjusted a note to its enharmonic whose natural
+				# note ends up in the next octave (e.g. B -> Cb). I think this only happens for B -> Cb?
+				if adjusted_note == "Cb" and pitch == "B":
+					note.attrib["key"] = str(int(note.attrib["key"]) + 12)
+				
 				pitch = adjusted_note
 		
 		new_step.text = str(pitch[0])
@@ -281,6 +287,7 @@ class MMP_MusicXML_Converter:
 		
 		# calculate octave 
 		octave = int(int(note.attrib["key"]) / 12) # basically floor(piano key number / 12)
+		
 		new_octave = ET.SubElement(new_pitch, "octave")
 		new_octave.text = str(octave)
 		
