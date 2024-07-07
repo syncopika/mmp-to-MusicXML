@@ -267,11 +267,8 @@ class MMP_MusicXML_Converter:
 			if self.NOTE_ADJUSTER.need_to_convert_to_flat(pitch, self.SPECIFIED_KEY_SIGNATURE):
 				adjusted_note = self.NOTE_ADJUSTER.adjust_note_per_key_signature(pitch, self.SPECIFIED_KEY_SIGNATURE)
 				pitch = adjusted_note
-				new_step.text = str(pitch[0])
-			else:
-				new_step.text = str(pitch[0])
-		else:
-			new_step.text = str(pitch[0])
+		
+		new_step.text = str(pitch[0])
 		
 		if len(pitch) > 1 and pitch[1] == "#":
 			# if pitch is a sharp note, e.g. "E#"
