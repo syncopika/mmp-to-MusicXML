@@ -81,6 +81,32 @@ def test_f_chromatic():
 	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
 	
 	os.remove(output)
+	
+def test_cs():
+	converter = MMP_MusicXML_Converter(key_signature='cs')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\cs.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\cs.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\cs.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
+	
+def test_fs():
+	converter = MMP_MusicXML_Converter(key_signature='fs')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\fs.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\fs.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\fs.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
 
 
 # TODO: add tests for the other keys :)

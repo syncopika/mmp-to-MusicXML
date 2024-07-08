@@ -180,6 +180,8 @@ class MMP_MusicXML_Converter:
 		"a": "3",
 		"e": "4",
 		"b": "5",
+		"fs": "6",
+		"cs": "7",
 		"f": "-1",
 		"bb": "-2",
 		"eb": "-3",
@@ -264,13 +266,17 @@ class MMP_MusicXML_Converter:
 		if self.NOTE_ADJUSTER:
 			# might need to convert a sharp note to a flat note
 			# depending on specified key signature
-			if self.NOTE_ADJUSTER.need_to_convert_to_flat(pitch, self.SPECIFIED_KEY_SIGNATURE):
+			if self.NOTE_ADJUSTER.need_to_convert(pitch, self.SPECIFIED_KEY_SIGNATURE):
 				adjusted_note = self.NOTE_ADJUSTER.adjust_note_per_key_signature(pitch, self.SPECIFIED_KEY_SIGNATURE)
 				
 				# adjust octave as well if we adjusted a note to its enharmonic whose natural
 				# note ends up in the next octave (e.g. B -> Cb). I think this only happens for B -> Cb?
 				if adjusted_note == "Cb" and pitch == "B":
 					note.attrib["key"] = str(int(note.attrib["key"]) + 12)
+				
+				# and then similarly for a C that should actually be a B# (e.g. if key signature is C#)
+				if adjusted_note == "B#" and pitch == "C":
+					note.attrib["key"] = str(int(note.attrib["key"]) - 12)
 				
 				pitch = adjusted_note
 		
