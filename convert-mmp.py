@@ -33,11 +33,24 @@ if __name__ == "__main__":
 	parser.add_argument('-k', '--key', help=f'Specify the key signature for the piece. Options are: c (default), g, d, a, e, b, f, bb, eb, ab, db, gb, cb, fs, cs. You can also pass in a minor key: {", ".join(minor_to_major_map.keys())}.', default=None) # specify key signature for piece (default is key of C Major)
 	
 	args = parser.parse_args()
-	
+
+
+	# define key_signature
+
 	if args.key in minor_to_major_map:
-		args.key = minor_to_major_map[args.key]
+		key_signature = minor_to_major_map[args.key]
+	else:
+		key_signature = args.key
+
 	
 	# check notes of each instrument (if applicable) to catch any out-of-normal-range notes
-	converter = MMP_MusicXML_Converter(check_notes=args.check, key_signature=args.key)
+
+	converter = MMP_MusicXML_Converter (
+		key_signature = key_signature,
+		params =
+		{
+		  'opts': args,
+		}
+	)
 	
 	converter.convert_file(args.filename)

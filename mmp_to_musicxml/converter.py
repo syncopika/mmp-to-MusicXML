@@ -203,10 +203,12 @@ class MMP_MusicXML_Converter:
 	
 	SPECIFIED_KEY_SIGNATURE = None
 	
-	def __init__(self, check_notes=False, key_signature=None):
+	def __init__ ( self, key_signature = None, params = None ):
 		logging.basicConfig(level=logging.DEBUG)
-		
-		if check_notes:
+
+		self.opts = params['opts']
+
+		if self.opts.check:
 			logging.debug("note checking is on")
 			self.NOTE_CHECKER = NoteChecker()
 			
