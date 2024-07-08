@@ -207,6 +207,7 @@ class MMP_MusicXML_Converter:
 		logging.basicConfig(level=logging.DEBUG)
 
 		self.opts = params['opts']
+		self.minor = params['minor']
 
 		if self.opts.check:
 			logging.debug("note checking is on")
@@ -215,6 +216,8 @@ class MMP_MusicXML_Converter:
 		if key_signature:
 			if key_signature in self.FIFTHS:
 				logging.debug(f"adjusting notes per key signature: {key_signature}")
+				if self.minor:
+					logging.debug( 'minor mode [%s]' % self.opts.key )
 				self.NOTE_ADJUSTER = KeySignatureNoteFinder()
 				self.SPECIFIED_KEY_SIGNATURE = key_signature
 			else:

@@ -35,12 +35,14 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 
-	# define key_signature
+	# define key_signature and mode
 
 	if args.key in minor_to_major_map:
 		key_signature = minor_to_major_map[args.key]
+		minor = True
 	else:
 		key_signature = args.key
+		minor = False
 
 	
 	# check notes of each instrument (if applicable) to catch any out-of-normal-range notes
@@ -50,6 +52,7 @@ if __name__ == "__main__":
 		params =
 		{
 		  'opts': args,
+		  'minor': minor,
 		}
 	)
 	
