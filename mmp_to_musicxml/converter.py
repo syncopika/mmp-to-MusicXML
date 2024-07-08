@@ -656,7 +656,17 @@ class MMP_MusicXML_Converter:
 			movement_title.text = "title of piece goes here"
 
 
+		# instrument track names
+
+		if self.opts.names:
+			names = self.opts.names.split ( ';' )
+			logging.debug ( 'tracks: ' + '|'.join ( names ) )
+		else:
+			names = self.INSTRUMENTS.union ( self.BASS_INSTRUMENTS )
+
+
 		# list of the instrument parts 
+
 		part_list = ET.SubElement(score_partwise, 'part-list')
 
 		# then go through each instrument in the mmp file and add them to part-list 
@@ -666,7 +676,7 @@ class MMP_MusicXML_Converter:
 			isMuted = el.attrib['muted'] == "1"
 			inst_count = str(instrument_counter)
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
+			if ( name in names ) and not isMuted:
 				# need to also check if there are notes for this instrument. if it's an empty track, skip it
 				if el.find("pattern") is None:
 					continue
@@ -723,7 +733,7 @@ class MMP_MusicXML_Converter:
 			name = el.attrib['name']
 			is_muted = el.attrib['muted'] == "1"
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not is_muted:
+			if ( name in names ) and not is_muted:
 				# get the pattern chunks (which hold the notes)
 				pattern_chunks = []
 				for el2 in el.iter(tag = 'pattern'):
