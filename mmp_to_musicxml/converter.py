@@ -652,9 +652,13 @@ class MMP_MusicXML_Converter:
 		score_partwise = ET.Element('score-partwise')
 
 		# title of piece
-		# TODO: allow user to set name of piece via arg
 		movement_title = ET.SubElement(score_partwise, 'movement-title')
-		movement_title.text = "title of piece goes here"
+
+		if self.opts and self.opts.title:
+			movement_title.text = self.opts.title
+			logging.debug (f"title: {movement_title.text}")
+		else:
+			movement_title.text = "title of piece goes here"
 
 		# list of the instrument parts 
 		part_list = ET.SubElement(score_partwise, 'part-list')
