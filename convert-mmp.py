@@ -35,9 +35,13 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	if args.key in minor_to_major_map:
-		args.key = minor_to_major_map[args.key]
+		minor = args.key
+		major = minor_to_major_map[minor]
+	else:
+		major = args.key
+		minor = None
 	
 	# check notes of each instrument (if applicable) to catch any out-of-normal-range notes
-	converter = MMP_MusicXML_Converter(check_notes=args.check, key_signature=args.key)
+	converter = MMP_MusicXML_Converter(check_notes=args.check, key_signature=major)
 	
 	converter.convert_file(args.filename)
