@@ -628,6 +628,10 @@ class MMP_MusicXML_Converter:
 		# get the master pitch. if it's not 0, we can alter the notes accordingly. 
 		MASTER_PITCH = int(root.find('head').attrib['masterpitch'])
 
+		if self.opts and self.opts.master:
+			MASTER_PITCH = int(self.opts.master)
+			logging.debug(f"MASTER_PITCH: {str(MASTER_PITCH)}")
+
 		# LMMS measure length variable needs to be based on the time signature numerator 
 		# a quarter note is always length 48 
 		self.LMMS_MEASURE_LENGTH = self.NOTE_TYPE["quarter"] * int(self.TIME_SIGNATURE_NUMERATOR)

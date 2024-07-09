@@ -31,6 +31,7 @@ if __name__ == "__main__":
 	parser.add_argument('filename')
 	parser.add_argument('-c', '--check', help='Check if any instrument notes fall out of the expected range (if applicable).', default=False, action='store_true') # check notes if any instrument notes fall out of expected range
 	parser.add_argument('-k', '--key', help=f'Specify the key signature for the piece. Options are: c (default), g, d, a, e, b, f, bb, eb, ab, db, gb, cb, fs, cs. You can also pass in a minor key: {", ".join(minor_to_major_map.keys())}.', default=None) # specify key signature for piece (default is key of C Major)
+	parser.add_argument('-m', '--master', metavar='i', help='Set master pitch')
 	
 	args = parser.parse_args()
 	
