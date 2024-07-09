@@ -45,6 +45,7 @@ if __name__ == "__main__":
 	converter = MMP_MusicXML_Converter(check_notes=args.check, key_signature=major,
 		params =
 		{
+		  'opts': args,
 		  'minor': minor,
 		})
 	
