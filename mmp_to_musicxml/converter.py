@@ -61,6 +61,9 @@ class MMP_MusicXML_Converter:
 		"tubular bells",
 		"xylophone",
 		"marimba",
+		"treble", "soprano", "alto", "tenor",
+		"upper",
+		"right", "rechte" "droite", "destra",
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
@@ -78,6 +81,8 @@ class MMP_MusicXML_Converter:
 		"timpani",
 		"bass clarinet",
 		"contrabass clarinet",
+		"lower",
+		"left", "linke", "gauche", "sinistra",
 	])
 	
 	# https://en.wikipedia.org/wiki/General_MIDI
@@ -203,16 +208,24 @@ class MMP_MusicXML_Converter:
 	
 	SPECIFIED_KEY_SIGNATURE = None
 	
-	def __init__(self, check_notes=False, key_signature=None):
+	opts = None
+	minor = None
+
+	def __init__(self, key_signature=None, params=None):
 		logging.basicConfig(level=logging.DEBUG)
 		
-		if check_notes:
+		if params:
+			if 'opts' in params: self.opts = params['opts']
+			if 'minor' in params: self.minor = params['minor']
+
+		if self.opts and self.opts.check:
 			logging.debug("note checking is on")
 			self.NOTE_CHECKER = NoteChecker()
 			
 		if key_signature:
 			if key_signature in self.FIFTHS:
 				logging.debug(f"adjusting notes per key signature: {key_signature}")
+				if self.minor: logging.debug(f"minor mode [{self.minor}]")
 				self.NOTE_ADJUSTER = KeySignatureNoteFinder()
 				self.SPECIFIED_KEY_SIGNATURE = key_signature
 			else:
@@ -620,6 +633,10 @@ class MMP_MusicXML_Converter:
 		# get the master pitch. if it's not 0, we can alter the notes accordingly. 
 		MASTER_PITCH = int(root.find('head').attrib['masterpitch'])
 
+		if self.opts and self.opts.master:
+			MASTER_PITCH = int(self.opts.master)
+			logging.debug(f"MASTER_PITCH: {str(MASTER_PITCH)}")
+
 		# LMMS measure length variable needs to be based on the time signature numerator 
 		# a quarter note is always length 48 
 		self.LMMS_MEASURE_LENGTH = self.NOTE_TYPE["quarter"] * int(self.TIME_SIGNATURE_NUMERATOR)
@@ -640,9 +657,20 @@ class MMP_MusicXML_Converter:
 		score_partwise = ET.Element('score-partwise')
 
 		# title of piece
-		# TODO: allow user to set name of piece via arg
 		movement_title = ET.SubElement(score_partwise, 'movement-title')
-		movement_title.text = "title of piece goes here"
+
+		if self.opts and self.opts.title:
+			movement_title.text = self.opts.title
+			logging.debug (f"title: {movement_title.text}")
+		else:
+			movement_title.text = "title of piece goes here"
+
+		# instrument track names
+		if self.opts and self.opts.instruments:
+			names = self.opts.instruments.split('+')
+			logging.debug (f"tracks: {'|'.join(names)}")
+		else:
+			names = self.INSTRUMENTS.union(self.BASS_INSTRUMENTS)
 
 		# list of the instrument parts 
 		part_list = ET.SubElement(score_partwise, 'part-list')
@@ -654,7 +682,7 @@ class MMP_MusicXML_Converter:
 			isMuted = el.attrib['muted'] == "1"
 			inst_count = str(instrument_counter)
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
+			if (name in names) and not isMuted:
 				# need to also check if there are notes for this instrument. if it's an empty track, skip it
 				if el.find("pattern") is None:
 					continue
@@ -711,7 +739,7 @@ class MMP_MusicXML_Converter:
 			name = el.attrib['name']
 			is_muted = el.attrib['muted'] == "1"
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not is_muted:
+			if (name in names) and not is_muted:
 				# get the pattern chunks (which hold the notes)
 				pattern_chunks = []
 				for el2 in el.iter(tag = 'pattern'):
