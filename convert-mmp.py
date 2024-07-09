@@ -33,6 +33,7 @@ if __name__ == "__main__":
 	parser.add_argument('-k', '--key', help=f'Specify the key signature for the piece. Options are: c (default), g, d, a, e, b, f, bb, eb, ab, db, gb, cb, fs, cs. You can also pass in a minor key: {", ".join(minor_to_major_map.keys())}.', default=None) # specify key signature for piece (default is key of C Major)
 	parser.add_argument('-m', '--master', metavar='i', help='Set master pitch')
 	parser.add_argument('-t', '--title', metavar='str', help='Set piece title')
+	parser.add_argument('-i', '--instruments', metavar='str', help='Select instrument tracks using the plus sign (+) as list separator: violin+cello')
 	
 	args = parser.parse_args()
 	
