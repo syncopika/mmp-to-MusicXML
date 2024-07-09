@@ -42,7 +42,7 @@ if __name__ == "__main__":
 		minor = None
 	
 	# check notes of each instrument (if applicable) to catch any out-of-normal-range notes
-	converter = MMP_MusicXML_Converter(check_notes=args.check, key_signature=major,
+	converter = MMP_MusicXML_Converter(key_signature=major,
 		params =
 		{
 		  'opts': args,

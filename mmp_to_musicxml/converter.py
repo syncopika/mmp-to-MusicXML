@@ -206,14 +206,14 @@ class MMP_MusicXML_Converter:
 	opts = None
 	minor = None
 
-	def __init__(self, check_notes=False, key_signature=None, params=None):
+	def __init__(self, key_signature=None, params=None):
 		logging.basicConfig(level=logging.DEBUG)
 		
 		if params:
 			if 'opts' in params: self.opts = params['opts']
 			if 'minor' in params: self.minor = params['minor']
 
-		if check_notes:
+		if self.opts and self.opts.check:
 			logging.debug("note checking is on")
 			self.NOTE_CHECKER = NoteChecker()
 			
