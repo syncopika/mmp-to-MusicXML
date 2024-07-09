@@ -61,6 +61,9 @@ class MMP_MusicXML_Converter:
 		"tubular bells",
 		"xylophone",
 		"marimba",
+		"treble", "soprano", "alto", "tenor",
+		"upper",
+		"right", "rechte" "droite", "destra",
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
@@ -78,6 +81,8 @@ class MMP_MusicXML_Converter:
 		"timpani",
 		"bass clarinet",
 		"contrabass clarinet",
+		"lower",
+		"left", "linke", "gauche", "sinistra",
 	])
 	
 	# https://en.wikipedia.org/wiki/General_MIDI
