@@ -48,10 +48,10 @@ class KeySignatureNoteFinder:
 	# table to record which enharmonics should be used for which key signatures
 	KEY_SIGNATURE_TABLE = {
 		'd': ['F#', 'C#'],
-		'e': ['F#', 'G#', 'C#', 'D#'],
+		'e': ['F#', 'G#', 'C#', 'D#', 'B#'],
 		'f': ['Bb'],
 		'g': ['F#'],
-		'a': ['C#', 'F#', 'G#'],
+		'a': ['C#', 'F#', 'G#', 'E#'],
 		'b': ['C#', 'D#', 'F#', 'G#', 'A#'],
 		'bb': ['Bb', 'Eb'],
 		'eb': ['Eb', 'Ab', 'Bb'],
@@ -59,7 +59,7 @@ class KeySignatureNoteFinder:
 		'db': ['Gb', 'Ab', 'Db', 'Bb', 'Eb'],
 		'gb': ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
 		'cb': ['Fb', 'Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
-		'fs': ['F#', 'G#', 'A#', 'C#', 'D#', 'E#'],
+		'fs': ['F#', 'G#', 'A#', 'C#', 'D#', 'E#', 'B#'],
 		'cs': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
 	}
 	
