@@ -203,20 +203,18 @@ class MMP_MusicXML_Converter:
 	# note checker to check if any instrument notes are out of the traditional range
 	NOTE_CHECKER = None
 	
-	# note adjuster based on key signature if specified
-	NOTE_ADJUSTER = None
+	# note finder based on key signature if specified
+	NOTE_FINDER = None
 	
 	SPECIFIED_KEY_SIGNATURE = None
 	
 	opts = None
-	minor = None
 
 	def __init__(self, key_signature=None, params=None):
 		logging.basicConfig(level=logging.DEBUG)
 		
 		if params:
 			if 'opts' in params: self.opts = params['opts']
-			if 'minor' in params: self.minor = params['minor']
 
 		if self.opts and self.opts.check:
 			logging.debug("note checking is on")
@@ -225,8 +223,7 @@ class MMP_MusicXML_Converter:
 		if key_signature:
 			if key_signature in self.FIFTHS:
 				logging.debug(f"adjusting notes per key signature: {key_signature}")
-				if self.minor: logging.debug(f"minor mode [{self.minor}]")
-				self.NOTE_ADJUSTER = KeySignatureNoteFinder()
+				self.NOTE_FINDER = KeySignatureNoteFinder(key_signature=key_signature)
 				self.SPECIFIED_KEY_SIGNATURE = key_signature
 			else:
 				logging.debug(f"unidentifiable key signature argument was given: {key_signature}")
@@ -276,22 +273,30 @@ class MMP_MusicXML_Converter:
 		new_pitch = ET.SubElement(new_note, "pitch")
 		new_step = ET.SubElement(new_pitch, "step")
 		
-		if self.NOTE_ADJUSTER:
-			# might need to convert a sharp note to a flat note
-			# depending on specified key signature
-			if self.NOTE_ADJUSTER.need_to_convert(pitch, self.SPECIFIED_KEY_SIGNATURE):
-				adjusted_note = self.NOTE_ADJUSTER.adjust_note_per_key_signature(pitch, self.SPECIFIED_KEY_SIGNATURE)
-				
-				# adjust octave as well if we adjusted a note to its enharmonic whose natural
-				# note ends up in the next octave (e.g. B -> Cb). I think this only happens for B -> Cb?
-				if adjusted_note == "Cb" and pitch == "B":
-					note.attrib["key"] = str(int(note.attrib["key"]) + 12)
-				
-				# and then similarly for a C that should actually be a B# (e.g. if key signature is C#)
-				if adjusted_note == "B#" and pitch == "C":
-					note.attrib["key"] = str(int(note.attrib["key"]) - 12)
-				
-				pitch = adjusted_note
+		if self.NOTE_FINDER:
+			# found_note is a dict containing the following keys:
+			# diatonic: boolean
+			# degree: int
+			# note: List[str]
+			# octave: int
+			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
+			print(f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, note: {','.join(found_note['note'])}, diatonic: {found_note['diatonic']}, key num: {int(note.attrib['key'])}")
+			
+			note_candidates = found_note["note"] # note: there should only ever be 2 possible choices at maximum
+			
+			if len(note_candidates) == 1:
+				pitch = note_candidates[0]
+			
+			if self.NOTE_FINDER.KEY_SIGNATURE in self.NOTE_FINDER.KEY_SIGNATURE_TABLE:
+				# find right enharmonic based on key signature
+				for candidate in note_candidates:
+					if candidate in self.NOTE_FINDER.KEY_SIGNATURE_TABLE[self.NOTE_FINDER.KEY_SIGNATURE]:
+						pitch = candidate
+						
+				# adjust octave if B# <-> C or Cb <-> B
+				# TODO: maybe we can just rely on self.NOTE_FINDER to tell us what octave this note should be?
+				if pitch == 'B#': note.attrib["key"] = str(int(note.attrib["key"]) - 12)
+				if pitch == 'Cb': note.attrib["key"] = str(int(note.attrib["key"]) + 12)
 		
 		new_step.text = str(pitch[0])
 		
