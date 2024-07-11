@@ -33,34 +33,34 @@ class KeySignatureNoteFinder:
 	NOTES = {
 		0: ["B#", "C"],
 		1: ["C#", "Db"],
-		2: ["D"],
+		2: ["D", "C##"],
 		3: ["D#", "Eb"],
 		4: ["E", "Fb"],
 		5: ["E#", "F"],
 		6: ["F#", "Gb"],
-		7: ["G"],
+		7: ["G", "F##"],
 		8: ["G#", "Ab"],
-		9: ["A"],
+		9: ["A", "G##"],
 		10: ["A#", "Bb"],
 		11: ["B", "Cb"],
 	}
 	
-	# table to record which enharmonics should be used for which key signatures
+	# table to record which enharmonics should be used for which key signatures (including their relative melodic minors)
 	KEY_SIGNATURE_TABLE = {
 		'd': ['F#', 'C#'],
 		'e': ['F#', 'G#', 'C#', 'D#', 'B#'],
 		'f': ['Bb'],
 		'g': ['F#'],
 		'a': ['C#', 'F#', 'G#', 'E#'],
-		'b': ['C#', 'D#', 'F#', 'G#', 'A#'],
+		'b': ['C#', 'D#', 'F#', 'G#', 'A#', 'E#', 'F##'],
 		'bb': ['Bb', 'Eb'],
 		'eb': ['Eb', 'Ab', 'Bb'],
 		'ab': ['Ab', 'Bb', 'Db', 'Eb'],
 		'db': ['Gb', 'Ab', 'Db', 'Bb', 'Eb'],
 		'gb': ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
 		'cb': ['Fb', 'Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
-		'fs': ['F#', 'G#', 'A#', 'C#', 'D#', 'E#', 'B#'],
-		'cs': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
+		'fs': ['F#', 'G#', 'A#', 'C#', 'D#', 'E#', 'B#', 'C##'],
+		'cs': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#', 'F##', 'G##'],
 	}
 	
 	NUM_KEYS = 86 # 12 notes * 8 octaves

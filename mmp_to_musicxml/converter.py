@@ -282,7 +282,7 @@ class MMP_MusicXML_Converter:
 			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
 			print(f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, note: {','.join(found_note['note'])}, diatonic: {found_note['diatonic']}, key num: {int(note.attrib['key'])}")
 			
-			note_candidates = found_note["note"] # note: there should only ever be 2 possible choices at maximum
+			note_candidates = found_note["note"] # list of enharmonics
 			
 			if len(note_candidates) == 1:
 				pitch = note_candidates[0]
@@ -300,7 +300,11 @@ class MMP_MusicXML_Converter:
 		
 		new_step.text = str(pitch[0])
 		
-		if len(pitch) > 1 and pitch[1] == "#":
+		if len(pitch) == 3 and pitch[1] == "#":
+			# handle double-sharps
+			new_alter = ET.SubElement(new_pitch, "alter")
+			new_alter.text = "2"
+		elif len(pitch) > 1 and pitch[1] == "#":
 			# if pitch is a sharp note, e.g. "E#"
 			new_alter = ET.SubElement(new_pitch, "alter")
 			new_alter.text = "1"

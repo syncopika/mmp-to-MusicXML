@@ -107,6 +107,45 @@ def test_fs():
 	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
 	
 	os.remove(output)
+	
+def test_fsm():
+	converter = MMP_MusicXML_Converter(key_signature='a')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\fsm.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\fsm.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\fsm.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
+	
+def test_asm():
+	converter = MMP_MusicXML_Converter(key_signature='cs')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\asm.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\asm.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\asm.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
+	
+def test_gsm():
+	converter = MMP_MusicXML_Converter(key_signature='b')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\gsm.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\gsm.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\gsm.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
 
 
 # TODO: add tests for the other keys :)
