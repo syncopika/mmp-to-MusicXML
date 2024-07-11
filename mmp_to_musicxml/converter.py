@@ -277,26 +277,20 @@ class MMP_MusicXML_Converter:
 			# found_note is a dict containing the following keys:
 			# diatonic: boolean
 			# degree: int
-			# note: List[str]
+			# note: str
 			# octave: int
 			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
-			print(f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, note: {','.join(found_note['note'])}, diatonic: {found_note['diatonic']}, key num: {int(note.attrib['key'])}")
 			
-			note_candidates = found_note["note"] # list of enharmonics
+			print(f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, note: {found_note['note']}, diatonic: {found_note['diatonic']}, key num: {int(note.attrib['key'])}")
 			
-			if len(note_candidates) == 1:
-				pitch = note_candidates[0]
+			pitch = found_note["note"]
 			
-			if self.NOTE_FINDER.KEY_SIGNATURE in self.NOTE_FINDER.KEY_SIGNATURE_TABLE:
-				# find right enharmonic based on key signature
-				for candidate in note_candidates:
-					if candidate in self.NOTE_FINDER.KEY_SIGNATURE_TABLE[self.NOTE_FINDER.KEY_SIGNATURE]:
-						pitch = candidate
-						
-				# adjust octave if B# <-> C or Cb <-> B
-				# TODO: maybe we can just rely on self.NOTE_FINDER to tell us what octave this note should be?
-				if pitch == 'B#': note.attrib["key"] = str(int(note.attrib["key"]) - 12)
-				if pitch == 'Cb': note.attrib["key"] = str(int(note.attrib["key"]) + 12)
+			# adjust octave if B# <-> C or Cb <-> B
+			# TODO: maybe we can just rely on self.NOTE_FINDER to tell us what octave this note should be?
+			if pitch == 'B#':
+				note.attrib["key"] = str(int(note.attrib["key"]) - 12)
+			elif pitch == 'Cb':
+				note.attrib["key"] = str(int(note.attrib["key"]) + 12)
 		
 		new_step.text = str(pitch[0])
 		

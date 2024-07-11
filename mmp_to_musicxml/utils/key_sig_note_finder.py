@@ -31,12 +31,12 @@ class KeySignatureNoteFinder:
 	
 	# the possible notes + enharmonics
 	NOTES = {
-		0: ["B#", "C"],
+		0: ["C", "B#"],
 		1: ["C#", "Db"],
 		2: ["D", "C##"],
 		3: ["D#", "Eb"],
 		4: ["E", "Fb"],
-		5: ["E#", "F"],
+		5: ["F", "E#"],
 		6: ["F#", "Gb"],
 		7: ["G", "F##"],
 		8: ["G#", "Ab"],
@@ -47,17 +47,18 @@ class KeySignatureNoteFinder:
 	
 	# table to record which enharmonics should be used for which key signatures (including their relative melodic minors)
 	KEY_SIGNATURE_TABLE = {
-		'd': ['F#', 'C#'],
-		'e': ['F#', 'G#', 'C#', 'D#', 'B#'],
-		'f': ['Bb'],
-		'g': ['F#'],
-		'a': ['C#', 'F#', 'G#', 'E#'],
+		'c': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+		'd': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
+		'e': ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#', 'B#'],
+		'f': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
+		'g': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
+		'a': ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#', 'E#'],
 		'b': ['C#', 'D#', 'F#', 'G#', 'A#', 'E#', 'F##'],
-		'bb': ['Bb', 'Eb'],
-		'eb': ['Eb', 'Ab', 'Bb'],
-		'ab': ['Ab', 'Bb', 'Db', 'Eb'],
-		'db': ['Gb', 'Ab', 'Db', 'Bb', 'Eb'],
-		'gb': ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
+		'bb': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
+		'eb': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
+		'ab': ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G'],
+		'db': ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C'],
+		'gb': ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F'],
 		'cb': ['Fb', 'Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb'],
 		'fs': ['F#', 'G#', 'A#', 'C#', 'D#', 'E#', 'B#', 'C##'],
 		'cs': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#', 'F##', 'G##'],
@@ -93,13 +94,21 @@ class KeySignatureNoteFinder:
 					dist_from_tonic = 0
 				continue
 			else:
-				note_options = self.NOTES[i % 12]
+				note_candidates = self.NOTES[i % 12]
+				
+				note = note_candidates[0]
+				
+				if self.KEY_SIGNATURE in self.KEY_SIGNATURE_TABLE:
+					# find right enharmonic based on key signature
+					for candidate in note_candidates:
+						if candidate in self.KEY_SIGNATURE_TABLE[self.KEY_SIGNATURE]:
+							note = candidate
 				
 				if dist_from_tonic in diatonic_note_offsets:
 					self.NOTE_LIST.append({
 						'diatonic': True,
 						'degree': degree,
-						'note': note_options,
+						'note': note,
 						'octave': octave,
 					})
 					
@@ -112,7 +121,7 @@ class KeySignatureNoteFinder:
 					self.NOTE_LIST.append({
 						'diatonic': False,
 						'degree': degree,
-						'note': note_options,
+						'note': note,
 						'octave': octave
 					})
 					
