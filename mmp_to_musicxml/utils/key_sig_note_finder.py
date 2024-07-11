@@ -69,6 +69,9 @@ class KeySignatureNoteFinder:
 	NOTE_LIST = None
 
 	KEY_SIGNATURE = ''
+	
+	# how far from the tonic note the diatonic notes in a scale are
+	DIATONIC_OFFSETS = [0, 2, 4, 5, 7, 9, 11]
 
 	def __init__(self, key_signature='c'):
 		logging.basicConfig(level=logging.DEBUG)
@@ -77,14 +80,10 @@ class KeySignatureNoteFinder:
 		self.__calculate_note_list()
 
 	def __calculate_note_list(self):
-		# how far from the tonic note the diatonic notes in a scale are
-		diatonic_note_offsets = set([0, 2, 4, 5, 7, 9, 11])
-		
-		degree = 1
 		tonic_pos = self.NOTE_START_POSITIONS[self.KEY_SIGNATURE]
 		offset = 0 - (12 - tonic_pos)
 		dist_from_tonic = 0
-		octave = 0
+		octave = -1
 		
 		# i represents the number of a piano key
 		for i in range(offset, self.NUM_KEYS):
@@ -104,23 +103,17 @@ class KeySignatureNoteFinder:
 						if candidate in self.KEY_SIGNATURE_TABLE[self.KEY_SIGNATURE]:
 							note = candidate
 				
-				if dist_from_tonic in diatonic_note_offsets:
+				if dist_from_tonic in self.DIATONIC_OFFSETS:
 					self.NOTE_LIST.append({
 						'diatonic': True,
-						'degree': degree,
+						'degree': self.DIATONIC_OFFSETS.index(dist_from_tonic) + 1,
 						'note': note,
 						'octave': octave,
 					})
-					
-					degree += 1
-					
-					if degree > 7:
-						degree = 1
-						octave += 1
 				else:
 					self.NOTE_LIST.append({
 						'diatonic': False,
-						'degree': degree,
+						'degree': -1, # do non-diatonic notes have degree?
 						'note': note,
 						'octave': octave
 					})
@@ -128,6 +121,7 @@ class KeySignatureNoteFinder:
 				dist_from_tonic += 1
 				if dist_from_tonic > 11:
 					dist_from_tonic = 0
+					octave += 1
 
 		#print(self.NOTE_LIST)
 		

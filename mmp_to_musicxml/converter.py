@@ -276,12 +276,19 @@ class MMP_MusicXML_Converter:
 		if self.NOTE_FINDER:
 			# found_note is a dict containing the following keys:
 			# diatonic: boolean
-			# degree: int
+			# degree: int  // TODO: perhaps we can use this to know which notes to raise if in a minor key?
 			# note: str
 			# octave: int
 			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
 			
-			print(f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, note: {found_note['note']}, diatonic: {found_note['diatonic']}, key num: {int(note.attrib['key'])}")
+			print(
+				f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, "
+				f"note: {found_note['note']}, "
+				f"diatonic: {found_note['diatonic']}, "
+				f"key num: {int(note.attrib['key'])}, "
+				f"degree:{found_note['degree']}, "
+				f"octave:{found_note['octave']}"
+			)
 			
 			pitch = found_note["note"]
 			

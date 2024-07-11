@@ -146,6 +146,19 @@ def test_gsm():
 	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
 	
 	os.remove(output)
+	
+def test_g_melodic_minor():
+	converter = MMP_MusicXML_Converter(key_signature='bb')
+	
+	testfile = os.path.join(os.path.dirname(__file__), 'test_key_sig\\g-minor-melodic.mmp')
+	testfile_expected_output = os.path.join(os.path.dirname(__file__), 'test_key_sig/expected_output\\g-minor-melodic.xml')
+	output = os.path.join(os.path.dirname(__file__), 'test_key_sig\\g-minor-melodic.xml')
+	
+	converter.convert_file(testfile)
+	
+	assert filecmp.cmp(output, testfile_expected_output, shallow=False) is True
+	
+	os.remove(output)
 
 
 # TODO: add tests for the other keys :)
