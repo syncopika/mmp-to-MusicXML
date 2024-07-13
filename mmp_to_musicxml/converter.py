@@ -7,6 +7,7 @@ from typing import List
 from xml.dom import minidom
 
 from mmp_to_musicxml.utils.note_checker import NoteChecker
+from mmp_to_musicxml.utils.key_sig_note_finder import KeySignatureNoteFinder
 
 """
 ..module:: mmp_to_musicxml-documentation
@@ -60,6 +61,9 @@ class MMP_MusicXML_Converter:
 		"tubular bells",
 		"xylophone",
 		"marimba",
+		"treble", "soprano", "alto", "tenor",
+		"upper",
+		"right", "rechte" "droite", "destra",
 	])
 	
 	# these instruments will get bass clefs in the resulting xml
@@ -77,60 +81,62 @@ class MMP_MusicXML_Converter:
 		"timpani",
 		"bass clarinet",
 		"contrabass clarinet",
+		"lower",
+		"left", "linke", "gauche", "sinistra",
 	])
 	
 	# https://en.wikipedia.org/wiki/General_MIDI
 	MIDI_TABLE = {
-		'piano': 1, # acoustic grand
-		'harpsichord': 7,
-		'celesta': 9,
-		'glockenspiel': 10,
-		'vibraphone': 12,
-		'marimba': 13,
-		'xylophone': 14,
-		'tubular bells': 15,
-		'violin': 41,
-		'viola': 42,
-		'cello': 43,
-		'double bass': 44, # contrabass
-		'harp': 47,
-		'timpani': 48,
-		'trumpet': 57,
-		'trombone': 58,
-		'tuba': 59,
-		'horn': 61, # fr horn
-		'oboe': 69,
-		'bassoon': 71,
-		'clarinet': 72,
-		'piccolo': 73,
-		'flute': 74,
+		"piano": 1, # acoustic grand
+		"harpsichord": 7,
+		"celesta": 9,
+		"glockenspiel": 10,
+		"vibraphone": 12,
+		"marimba": 13,
+		"xylophone": 14,
+		"tubular bells": 15,
+		"violin": 41,
+		"viola": 42,
+		"cello": 43,
+		"double bass": 44, # contrabass
+		"harp": 47,
+		"timpani": 48,
+		"trumpet": 57,
+		"trombone": 58,
+		"tuba": 59,
+		"horn": 61, # fr horn
+		"oboe": 69,
+		"bassoon": 71,
+		"clarinet": 72,
+		"piccolo": 73,
+		"flute": 74,
 	}
 	
 	NOTES = {
-		0: 'C', 
-		1: 'C#', 
-		2: 'D',
-		3: 'D#', 
-		4: 'E', 
-		5: 'F', 
-		6: 'F#', 
-		7: 'G', 
-		8: 'G#', 
-		9: 'A', 
-		10: 'A#', 
-		11: 'B',
+		0: "C",
+		1: "C#",
+		2: "D",
+		3: "D#",
+		4: "E",
+		5: "F",
+		6: "F#",
+		7: "G",
+		8: "G#",
+		9: "A",
+		10: "A#",
+		11: "B",
 	}
 
 	# these are the true lengths of each note type.
 	# for example, a 16th note has a length of 12
 	# these numbers are based on note lengths in LMMS.
 	NOTE_TYPE = {
-		"whole": 192, 
-		"half": 96, 
-		"quarter": 48, 
-		"eighth": 24, 
-		"16th": 12, 
-		"32nd": 6, 
+		"whole": 192,
+		"half": 96,
+		"quarter": 48,
+		"eighth": 24,
+		"16th": 12,
+		"32nd": 6,
 		"64th": 3,
 	}
 
@@ -139,16 +145,16 @@ class MMP_MusicXML_Converter:
 	# note: these numbers are based on note lengths in LMMS!
 	# this is too restrictive? 168 should really be a double dotted half note and 144 a dotted half??
 	NOTE_LENGTHS = {
-		192: "whole", 
-		168: "half", 
-		144: "half", 
-		96: "half", 
-		72: "quarter", 
-		48: "quarter", 
-		36: "eighth", 
-		24: "eighth", 
-		12: "16th", 
-		6: "32nd", 
+		192: "whole",
+		168: "half",
+		144: "half",
+		96: "half",
+		72: "quarter",
+		48: "quarter",
+		36: "eighth",
+		24: "eighth",
+		12: "16th",
+		6: "32nd",
 		3: "64th",
 	}
 	
@@ -166,8 +172,28 @@ class MMP_MusicXML_Converter:
 
 	# properties for clef types 
 	CLEF_TYPE = {
-		"treble": {"sign": "G", 'line': "2"}, 
+		"treble": {"sign": "G", "line": "2"},
 		"bass": {"sign": "F", "line": "4"}
+	}
+	
+	# for determining key signature element if specified
+	# https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/fifths/
+	FIFTHS = {
+		"c": "0", # number of flats (negative num) or sharps (positive num)
+		"g": "1",
+		"d": "2",
+		"a": "3",
+		"e": "4",
+		"b": "5",
+		"fs": "6",
+		"cs": "7",
+		"f": "-1",
+		"bb": "-2",
+		"eb": "-3",
+		"ab": "-4",
+		"db": "-5",
+		"gb": "-6",
+		"cb": "-7",
 	}
 
 	# default values for time signature (4/4) 
@@ -177,12 +203,30 @@ class MMP_MusicXML_Converter:
 	# note checker to check if any instrument notes are out of the traditional range
 	NOTE_CHECKER = None
 	
-	def __init__(self, check_notes=False):
+	# note finder based on key signature if specified
+	NOTE_FINDER = None
+	
+	SPECIFIED_KEY_SIGNATURE = None
+	
+	opts = None
+
+	def __init__(self, key_signature=None, params=None):
 		logging.basicConfig(level=logging.DEBUG)
 		
-		if check_notes:
+		if params:
+			if 'opts' in params: self.opts = params['opts']
+
+		if self.opts and self.opts.check:
 			logging.debug("note checking is on")
 			self.NOTE_CHECKER = NoteChecker()
+			
+		if key_signature:
+			if key_signature in self.FIFTHS:
+				logging.debug(f"adjusting notes per key signature: {key_signature}")
+				self.NOTE_FINDER = KeySignatureNoteFinder(key_signature=key_signature)
+				self.SPECIFIED_KEY_SIGNATURE = key_signature
+			else:
+				logging.debug(f"unidentifiable key signature argument was given: {key_signature}")
 
 	def find_closest_note_type(self, length: int) -> str:
 		"""For a given length, find the closest note type (i.e. half, whole, quarter)
@@ -228,14 +272,51 @@ class MMP_MusicXML_Converter:
 		
 		new_pitch = ET.SubElement(new_note, "pitch")
 		new_step = ET.SubElement(new_pitch, "step")
+		
+		if self.NOTE_FINDER:
+			# found_note is a dict containing the following keys:
+			# diatonic: boolean
+			# degree: int  // TODO: perhaps we can use this to know which notes to raise if in a minor key?
+			# note: str
+			# octave: int
+			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
+			
+			print(
+				f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, "
+				f"note: {found_note['note']}, "
+				f"diatonic: {found_note['diatonic']}, "
+				f"key num: {int(note.attrib['key'])}, "
+				f"degree:{found_note['degree']}, "
+				f"octave:{found_note['octave']}"
+			)
+			
+			pitch = found_note["note"]
+			
+			# adjust octave if B# <-> C or Cb <-> B
+			# TODO: maybe we can just rely on self.NOTE_FINDER to tell us what octave this note should be?
+			if pitch == 'B#':
+				note.attrib["key"] = str(int(note.attrib["key"]) - 12)
+			elif pitch == 'Cb':
+				note.attrib["key"] = str(int(note.attrib["key"]) + 12)
+		
 		new_step.text = str(pitch[0])
 		
-		if len(pitch) > 1 and pitch[1] == '#':
+		if len(pitch) == 3 and pitch[1] == "#":
+			# handle double-sharps
+			new_alter = ET.SubElement(new_pitch, "alter")
+			new_alter.text = "2"
+		elif len(pitch) > 1 and pitch[1] == "#":
+			# if pitch is a sharp note, e.g. "E#"
 			new_alter = ET.SubElement(new_pitch, "alter")
 			new_alter.text = "1"
+		elif len(pitch) > 1 and pitch[1] == "b":
+			# if pitch should be a flat note, e.g. "Bb"
+			new_alter = ET.SubElement(new_pitch, "alter")
+			new_alter.text = "-1"
 		
 		# calculate octave 
 		octave = int(int(note.attrib["key"]) / 12) # basically floor(piano key number / 12)
+		
 		new_octave = ET.SubElement(new_pitch, "octave")
 		new_octave.text = str(octave)
 		
@@ -251,7 +332,7 @@ class MMP_MusicXML_Converter:
 			note_length = self.NOTE_TYPE[self.find_closest_note_type(length_table[position])]
 		
 		new_duration = ET.SubElement(new_note, "duration")
-		new_duration.text = str(int(note_length/6))
+		new_duration.text = str(int(note_length / 6))
 		
 		# need to identify the note type 
 		new_type = ET.SubElement(new_note, "type")
@@ -318,12 +399,12 @@ class MMP_MusicXML_Converter:
 		num_64th_rests = int(rem_size/3)
 		rem_size = rem_size - num_64th_rests*3 
 		
-		rests_to_add['64th'] = num_64th_rests
-		rests_to_add['32nd'] = num_32nd_rests
-		rests_to_add['16th'] = num_16th_rests
-		rests_to_add['eighth'] = num_eighth_rests
-		rests_to_add['quarter'] = num_quarter_rests
-		rests_to_add['whole'] = num_whole_rests
+		rests_to_add["64th"] = num_64th_rests
+		rests_to_add["32nd"] = num_32nd_rests
+		rests_to_add["16th"] = num_16th_rests
+		rests_to_add["eighth"] = num_eighth_rests
+		rests_to_add["quarter"] = num_quarter_rests
+		rests_to_add["whole"] = num_whole_rests
 
 		return rests_to_add 
 
@@ -374,7 +455,11 @@ class MMP_MusicXML_Converter:
 		
 		key = ET.SubElement(new_measure_attributes, "key")
 		fifths = ET.SubElement(key, "fifths")
-		fifths.text = "0"
+		
+		if self.SPECIFIED_KEY_SIGNATURE and self.SPECIFIED_KEY_SIGNATURE in self.FIFTHS:
+			fifths.text = self.FIFTHS[self.SPECIFIED_KEY_SIGNATURE]
+		else:
+			fifths.text = "0"
 		
 		time = ET.SubElement(new_measure_attributes, "time")
 		time_beats = ET.SubElement(time, "beats")
@@ -558,6 +643,10 @@ class MMP_MusicXML_Converter:
 		# get the master pitch. if it's not 0, we can alter the notes accordingly. 
 		MASTER_PITCH = int(root.find('head').attrib['masterpitch'])
 
+		if self.opts and self.opts.master:
+			MASTER_PITCH = int(self.opts.master)
+			logging.debug(f"MASTER_PITCH: {str(MASTER_PITCH)}")
+
 		# LMMS measure length variable needs to be based on the time signature numerator 
 		# a quarter note is always length 48 
 		self.LMMS_MEASURE_LENGTH = self.NOTE_TYPE["quarter"] * int(self.TIME_SIGNATURE_NUMERATOR)
@@ -579,7 +668,19 @@ class MMP_MusicXML_Converter:
 
 		# title of piece
 		movement_title = ET.SubElement(score_partwise, 'movement-title')
-		movement_title.text = "title of piece goes here"
+
+		if self.opts and self.opts.title:
+			movement_title.text = self.opts.title
+			logging.debug (f"title: {movement_title.text}")
+		else:
+			movement_title.text = "title of piece goes here"
+
+		# instrument track names
+		if self.opts and self.opts.instruments:
+			names = self.opts.instruments.split('+')
+			logging.debug (f"tracks: {'|'.join(names)}")
+		else:
+			names = self.INSTRUMENTS.union(self.BASS_INSTRUMENTS)
 
 		# list of the instrument parts 
 		part_list = ET.SubElement(score_partwise, 'part-list')
@@ -591,7 +692,7 @@ class MMP_MusicXML_Converter:
 			isMuted = el.attrib['muted'] == "1"
 			inst_count = str(instrument_counter)
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not isMuted:
+			if (name in names) and not isMuted:
 				# need to also check if there are notes for this instrument. if it's an empty track, skip it
 				if el.find("pattern") is None:
 					continue
@@ -648,14 +749,14 @@ class MMP_MusicXML_Converter:
 			name = el.attrib['name']
 			is_muted = el.attrib['muted'] == "1"
 			
-			if (name in self.INSTRUMENTS or name in self.BASS_INSTRUMENTS) and not is_muted:
+			if (name in names) and not is_muted:
 				# get the pattern chunks (which hold the notes)
 				pattern_chunks = []
 				for el2 in el.iter(tag = 'pattern'):
 					pattern_chunks.append(el2)
 				
 				curr_measure = None
-				pattern_notes = []
+				pattern_notes = [] # list of tuple containing a note and its measure num, i.e. (note, measure)
 				
 				# concatenate all the patterns and get their notes all in one list 
 				for i in range(0, len(pattern_chunks)):
