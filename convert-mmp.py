@@ -21,7 +21,7 @@ if __name__ == "__main__":
 		"csm":  "e",
 		"gsm":  "b",
 		"dsm":  "fs",
-		"asm":  "cs"
+		"asm":  "cs",
 	}
 
 	parser = argparse.ArgumentParser(
