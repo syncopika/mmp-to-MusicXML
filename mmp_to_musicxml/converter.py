@@ -281,14 +281,14 @@ class MMP_MusicXML_Converter:
 			# octave: int
 			found_note = self.NOTE_FINDER.get_note_based_on_key(int(note.attrib["key"]))
 			
-			print(
-				f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, "
-				f"note: {found_note['note']}, "
-				f"diatonic: {found_note['diatonic']}, "
-				f"key num: {int(note.attrib['key'])}, "
-				f"degree:{found_note['degree']}, "
-				f"octave:{found_note['octave']}"
-			)
+			#print(
+			#	f"key sig: {self.NOTE_FINDER.KEY_SIGNATURE}, "
+			#	f"note: {found_note['note']}, "
+			#	f"diatonic: {found_note['diatonic']}, "
+			#	f"key num: {int(note.attrib['key'])}, "
+			#	f"degree:{found_note['degree']}, "
+			#	f"octave:{found_note['octave']}"
+			#)
 			
 			pitch = found_note["note"]
 			
