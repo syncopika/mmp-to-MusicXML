@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import xml.etree.ElementTree as ET
 
@@ -132,8 +133,11 @@ class MMP_MusicXML_Converter:
 	# these numbers are based on note lengths in LMMS.
 	NOTE_TYPE = {
 		"whole": 192,
+		"half-dotted": 144,
 		"half": 96,
+		"quarter-dotted": 72,
 		"quarter": 48,
+		"eighth-dotted": 36,
 		"eighth": 24,
 		"16th": 12,
 		"32nd": 6,
@@ -147,11 +151,11 @@ class MMP_MusicXML_Converter:
 	NOTE_LENGTHS = {
 		192: "whole",
 		168: "half",
-		144: "half",
+		144: "half-dotted",
 		96: "half",
-		72: "quarter",
+		72: "quarter-dotted",
 		48: "quarter",
-		36: "eighth",
+		36: "eighth-dotted",
 		24: "eighth",
 		12: "16th",
 		6: "32nd",
@@ -336,7 +340,12 @@ class MMP_MusicXML_Converter:
 		
 		# need to identify the note type 
 		new_type = ET.SubElement(new_note, "type")
-		new_type.text = self.find_closest_note_type(note_length)
+		new_type.text = self.find_closest_note_type(note_length).split("-")[0]
+
+		# add dot element if a dotted note
+		if "dotted" in self.find_closest_note_type(note_length):
+			dot = ET.SubElement(new_note, "dot")
+    
 		return new_note
 
 	def add_rest(self, parent_node: ET.Element, rest_type: str) -> ET.Element:
@@ -620,8 +629,10 @@ class MMP_MusicXML_Converter:
 				
 		return length_table 
 
-	def convert_file(self, filepath: str):
+	def convert_file(self, filepath: str) -> str:
 		"""Does the converting from .mmp to MusicXML.
+		
+		Returns the path of the new MusicXML file.
 		"""
 		file = filepath
 		
@@ -629,9 +640,9 @@ class MMP_MusicXML_Converter:
 			raise ValueError("not an .mmp file!")
 			
 		# extract just the file's name 
-		lastSlashIndex = file.rfind("/")
-		extensionIndex = file.rfind(".mmp")
-		outputFileName = file[(lastSlashIndex+1):extensionIndex]
+		last_slash_index = file.rfind("/")
+		extension_index = file.rfind(".mmp")
+		output_file_name = file[(last_slash_index+1):extension_index]
 			
 		tree = ET.parse(file)
 		root = tree.getroot()
@@ -657,7 +668,7 @@ class MMP_MusicXML_Converter:
 		#logging.debug("Duration of a measure (with 32nd notes): " + str(int(TIME_SIGNATURE_NUMERATOR) * int(NUM_DIVISIONS)))
 
 		# write a new xml file 
-		new_file = open(outputFileName + ".xml", "w")
+		new_file = open(output_file_name + ".xml", "w")
 
 		# add the appropriate headers first 
 		new_file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -937,3 +948,7 @@ class MMP_MusicXML_Converter:
 		data = minidom.parseString(ET.tostring(score_partwise, encoding="unicode")).toprettyxml(indent="    ")
 		data = data.replace("<?xml version=\"1.0\" ?>", "") # toprettyxml adds a xml declaration, but I have it already written to the file
 		new_file.write(data)
+		
+		new_file.close()
+		
+		return os.path.realpath(new_file.name)
