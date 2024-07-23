@@ -12,7 +12,7 @@ The output will be named whatever the file's name is as an xml file in the same 
     
 some things to note as of now:    
 - the smallest note type the script can understand is a 64th note, so anything smaller will break things 
-- no tied notes
+- no tied notes (and currently only eighth, quarter and half dotted notes are supported)
 - can't identify intended triplets
 - notes that extend past a measure are truncated to fit in the measure they start in
 - I've specified some instruments for the program to identify by default based on the track names - i.e. flute, piano, clarinet since I work with a lot of those instrument soundfonts.    
