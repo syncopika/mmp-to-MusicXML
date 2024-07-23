@@ -6,16 +6,16 @@ The idea is to help provide significant time savings in getting your music from 
 Try it in the browser! https://syncopika.github.io/mmp-to-MusicXML/  
     
 ### USAGE:    
-Run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there. There are a couple optional arguments you can supply to check if certain instrument notes fall out of the expected range (via `-c`) or to set the key signature of the piece (via `-k`). See `python convert-mmp.py -h` for more details.    
+Run `python convert-mmp.py [file path to an .mmp file]` or import the module into another script and use it there. There are a few optional arguments you can supply, e.g. to check if certain instrument notes fall out of the expected range (via `-c`) or to set the key signature of the piece (via `-k`). See `python convert-mmp.py -h` for more details and options.    
     
 The output will be named whatever the file's name is as an xml file in the same directory. You can then use MuseScore to view it. I've not tested with other notation software.    
     
 some things to note as of now:    
 - the smallest note type the script can understand is a 64th note, so anything smaller will break things 
-- no tied and/or dotted notes
+- no tied notes
 - can't identify intended triplets
 - notes that extend past a measure are truncated to fit in the measure they start in
-- I've specified some instruments for the program to identify based on the track names - i.e. flute, piano, clarinet since I work with a lot of those instrument soundfonts. I should extend this to accept TripleOscillator tracks, for example, though as well.    
+- I've specified some instruments for the program to identify by default based on the track names - i.e. flute, piano, clarinet since I work with a lot of those instrument soundfonts.    
 - Additionally, I've added a rudimentary note checking feature that'll evaluate certain instruments' notes (see `mmp_to_musicxml/utils/note_checker.py`) and output warnings for any notes that don't fall in the traditional range.    
     
 You can try out the script with the included test .mmp files, or check out some of my results in `/example_output`!    
