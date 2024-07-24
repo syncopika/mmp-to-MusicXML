@@ -86,7 +86,7 @@ class KeySignatureNoteFinder:
 		octave = -1
 		
 		# i represents the number of a piano key
-		for i in range(offset, self.NUM_KEYS):
+		for i in range(offset, self.NUM_KEYS + 1):
 			if i < 0:
 				dist_from_tonic += 1
 				if dist_from_tonic > 11:

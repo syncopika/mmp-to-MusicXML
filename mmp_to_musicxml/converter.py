@@ -60,6 +60,7 @@ class MMP_MusicXML_Converter:
 		"marc str",
 		"tenor sax",
 		"tubular bells",
+		"chimes",
 		"xylophone",
 		"marimba",
 		"treble", "soprano", "alto", "tenor",
@@ -111,6 +112,7 @@ class MMP_MusicXML_Converter:
 		"clarinet": 72,
 		"piccolo": 73,
 		"flute": 74,
+		"chimes": 15,
 	}
 	
 	NOTES = {
